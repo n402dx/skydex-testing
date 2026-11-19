@@ -1,0 +1,6 @@
+{
+  "name": "SkyDeck",
+  "description": "Live ADS-B radar, Chinese and global web tracking feeds, ACARS stream, 3D cockpit & aircraft liveries, airport taxi feed, and weather-coupled flight planner.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

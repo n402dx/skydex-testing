@@ -1,0 +1,1633 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SkyDeck — Live ADS-B Radar, ACARS & 3D Flight Deck</title>
+    <meta name="description" content="Live ADS-B radar, Chinese and global web tracking feeds, ACARS stream, 3D cockpit & aircraft liveries, airport taxi feed, and weather-coupled flight planner." />
+    <meta property="og:title" content="SkyDeck — Live ADS-B Radar, ACARS & 3D Flight Deck" />
+    <meta property="og:description" content="Live ADS-B radar, Chinese and global web tracking feeds, ACARS stream, 3D cockpit & aircraft liveries, airport taxi feed, and weather-coupled flight planner." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="theme-color" content="#bcd8f8" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="SkyDeck" />
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='96' fill='%23080D16'/%3E%3Ccircle cx='256' cy='256' r='184' fill='none' stroke='%230EA5E9' stroke-opacity='0.28' stroke-width='6'/%3E%3Ccircle cx='256' cy='256' r='124' fill='none' stroke='%230EA5E9' stroke-opacity='0.45' stroke-width='4' stroke-dasharray='10 10'/%3E%3Cpath d='M256 116 L282 214 L388 268 L388 294 L282 264 L282 344 L322 374 L322 396 L256 380 L190 396 L190 374 L230 344 L230 264 L124 294 L124 268 L230 214 Z' fill='%2338BDF8'/%3E%3Ccircle cx='352' cy='160' r='10' fill='%23F59E0B'/%3E%3C/svg%3E"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="bg-[#bcd8f8] text-[#13233a] dark:bg-[#080D16] dark:text-[#E2E8F0] antialiased overflow-hidden selection:bg-[#13233a]/15 dark:selection:bg-sky-500/30">
+    <div id="root"></div>
+    <!-- SKYDECK_STATIC_RUNTIME_START -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
+    <style data-skydeck-static>
+      :root {
+        --sd-bg: #bcd8f8;
+        --sd-fg: #13233a;
+        --sd-card: rgba(242, 247, 254, 0.94);
+        --sd-sec: #d7e8fc;
+        --sd-border: rgba(19, 35, 58, 0.14);
+        --sd-muted: #3a5577;
+        --sd-accent: #13233a;
+        --sd-accent-fg: #ffffff;
+      }
+      html.dark {
+        --sd-bg: #080d16;
+        --sd-fg: #e2e8f0;
+        --sd-card: rgba(18, 22, 31, 0.94);
+        --sd-sec: #1a202c;
+        --sd-border: rgba(255, 255, 255, 0.1);
+        --sd-muted: #94a3b8;
+        --sd-accent: #38bdf8;
+        --sd-accent-fg: #080d16;
+      }
+      html, body, #root {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        font-family: 'Google Sans', system-ui, sans-serif;
+        background: var(--sd-bg);
+        color: var(--sd-fg);
+      }
+      .sd-shell {
+        position: relative;
+        width: 100vw;
+        height: 100dvh;
+        overflow: hidden;
+      }
+      #sd-map {
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        background: #d9e8fa;
+      }
+      html.dark #sd-map {
+        background: #0b0e14;
+      }
+      .sd-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        height: 32px;
+        padding: 0 12px;
+        border-radius: 9999px;
+        border: 1px solid var(--sd-border);
+        background: var(--sd-sec);
+        color: var(--sd-fg);
+        font-size: 12px;
+        font-weight: 500;
+        cursor: pointer;
+        white-space: nowrap;
+        transition: all 220ms cubic-bezier(0.16, 1, 0.3, 1);
+      }
+      .sd-btn:hover {
+        filter: brightness(0.96);
+      }
+      .sd-btn.active {
+        background: var(--sd-accent);
+        color: var(--sd-accent-fg);
+        border-color: transparent;
+      }
+      .sd-legend {
+        position: fixed;
+        top: 12px;
+        right: 52px;
+        z-index: 450;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 14px;
+        border-radius: 9999px;
+        background: var(--sd-card);
+        border: 1px solid var(--sd-border);
+        backdrop-filter: blur(12px);
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 10.5px;
+        color: var(--sd-muted);
+        box-shadow: 0 4px 16px rgba(15, 23, 42, 0.14);
+        transition: all 260ms cubic-bezier(0.16, 1, 0.3, 1);
+      }
+      .sd-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 9999px;
+        display: inline-block;
+      }
+      .sd-sidebar {
+        position: fixed;
+        top: 12px;
+        left: 12px;
+        bottom: 78px;
+        width: min(370px, calc(100vw - 24px));
+        z-index: 520;
+        background: var(--sd-card);
+        border: 1px solid var(--sd-border);
+        border-radius: 20px;
+        backdrop-filter: blur(16px);
+        box-shadow: 0 16px 40px rgba(15, 23, 42, 0.22);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        transition: transform 280ms cubic-bezier(0.16, 1, 0.3, 1), opacity 240ms ease;
+      }
+      .sd-sidebar.hidden {
+        transform: translateX(-110%);
+        opacity: 0;
+        pointer-events: none;
+      }
+      .sd-dock-wrap {
+        position: fixed;
+        bottom: 12px;
+        left: 12px;
+        right: 12px;
+        z-index: 550;
+        display: flex;
+        justify-content: center;
+        align-items: flex-end;
+        pointer-events: none;
+      }
+      .sd-dock {
+        pointer-events: auto;
+        max-width: calc(100vw - 24px);
+        background: var(--sd-card);
+        border: 1px solid var(--sd-border);
+        border-radius: 9999px;
+        padding: 6px 10px;
+        backdrop-filter: blur(16px);
+        box-shadow: 0 12px 32px rgba(15, 23, 42, 0.22);
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        transition: all 280ms cubic-bezier(0.16, 1, 0.3, 1);
+      }
+      .sd-dock.collapsed {
+        transform: translateY(140%);
+        opacity: 0;
+        pointer-events: none;
+      }
+      .sd-dock-show {
+        position: fixed;
+        bottom: 12px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 560;
+        pointer-events: auto;
+      }
+      .sd-input, .sd-select {
+        height: 32px;
+        border-radius: 9999px;
+        border: 1px solid var(--sd-border);
+        background: var(--sd-sec);
+        color: var(--sd-fg);
+        padding: 0 12px;
+        font-size: 12px;
+        font-family: 'Google Sans', system-ui, sans-serif;
+        outline: none;
+      }
+      .sd-popover {
+        position: fixed;
+        bottom: 64px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: min(340px, calc(100vw - 24px));
+        max-height: 70dvh;
+        overflow-y: auto;
+        z-index: 600;
+        background: var(--sd-card);
+        border: 1px solid var(--sd-border);
+        border-radius: 18px;
+        padding: 14px;
+        backdrop-filter: blur(18px);
+        box-shadow: 0 20px 44px rgba(15, 23, 42, 0.28);
+        transition: all 220ms cubic-bezier(0.16, 1, 0.3, 1);
+      }
+      .sd-popover.hidden {
+        opacity: 0;
+        transform: translate(-50%, 10px) scale(0.96);
+        pointer-events: none;
+      }
+      .sd-grid-2 {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 6px;
+      }
+      .sd-grid-3 {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 6px;
+      }
+      .sd-mono {
+        font-family: 'JetBrains Mono', monospace;
+        font-variant-numeric: tabular-nums;
+      }
+      .skydeck-plane-icon, .skydeck-airport-label, .skydeck-runway-num, .skydeck-taxi-badge, .skydeck-approach-badge, .skydeck-rabbit-icon {
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+      }
+      @keyframes sd-rabbit {
+        0%, 100% { opacity: 0.2; transform: scale(0.75); }
+        20% { opacity: 1; transform: scale(1.45); box-shadow: 0 0 8px 2px rgba(255,255,255,0.95), 0 0 12px 3px rgba(56,189,248,0.75); }
+        40% { opacity: 0.25; transform: scale(0.8); }
+      }
+      .skydeck-rabbit-dot {
+        width: 6px; height: 6px; border-radius: 9999px; background: #fff; border: 1px solid #38bdf8;
+        animation: sd-rabbit 1.05s linear infinite;
+      }
+      @keyframes sd-emerg-pulse {
+        0% { transform: translate(-50%,-50%) scale(0.7); opacity: 0.95; }
+        75% { transform: translate(-50%,-50%) scale(1.85); opacity: 0; }
+        100% { transform: translate(-50%,-50%) scale(1.85); opacity: 0; }
+      }
+      .skydeck-emerg-ring {
+        position: absolute; left: 50%; top: 50%; border-radius: 9999px;
+        border: 2px solid #ef4444; background: rgba(239,68,68,0.14);
+        pointer-events: none; animation: sd-emerg-pulse 1.35s cubic-bezier(0.16,1,0.3,1) infinite;
+      }
+      .skydeck-ladd-ring {
+        position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%);
+        border-radius: 9999px; border: 1.5px dashed rgba(168,85,247,0.92);
+        background: rgba(168,85,247,0.1); pointer-events: none;
+      }
+      @media (max-width: 1024px) and (orientation: portrait), (max-width: 639px) {
+        .sd-legend { display: none; }
+        .sd-btn, .sd-input, .sd-select { min-height: 40px; }
+        .sd-dock-wrap { bottom: 8px; left: 8px; right: 8px; }
+        .sd-dock { border-radius: 20px; padding: 8px; gap: 5px; max-width: 100%; }
+        .sd-sidebar {
+          top: auto;
+          bottom: 78px;
+          left: 8px;
+          right: 8px;
+          width: auto;
+          height: 46dvh;
+          max-height: 54dvh;
+          border-radius: 22px;
+        }
+        .sd-sidebar.hidden {
+          transform: translateY(115%);
+        }
+      }
+    </style>
+
+    <div class="sd-shell" id="sd-static-app">
+      <div id="sd-map"></div>
+
+      <div class="sd-legend" aria-label="GeoFS Altitude Scale">
+        <span><i class="sd-dot" style="background:#FACC15"></i> 0k</span>
+        <span><i class="sd-dot" style="background:#22C55E"></i> 10k</span>
+        <span><i class="sd-dot" style="background:#2563EB"></i> 25k</span>
+        <span><i class="sd-dot" style="background:#7C5CBF"></i> 30k</span>
+        <span><i class="sd-dot" style="background:#BE185D"></i> 40k</span>
+        <span><i class="sd-dot" style="background:#F472B6"></i> 50k+</span>
+        <span><i class="sd-dot" style="background:#F9D949"></i> ACFT</span>
+        <span id="sd-count-pill" style="font-weight:700;color:var(--sd-fg)">Syncing…</span>
+      </div>
+
+      <aside class="sd-sidebar hidden" id="sd-sidebar"></aside>
+
+      <div class="sd-popover hidden" id="sd-settings-popover">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <div>
+            <div style="font-size:12px;font-weight:700;">Radar & Overlay Settings</div>
+            <div style="font-size:11px;color:var(--sd-muted);">Static Live Mode</div>
+          </div>
+          <button type="button" class="sd-btn" id="sd-settings-close">Close</button>
+        </div>
+
+        <div style="margin-bottom:12px;">
+          <div style="display:flex;justify-content:space-between;font-size:11.5px;margin-bottom:4px;">
+            <span>Airplane Size</span>
+            <span class="sd-mono" id="sd-size-val">20 px</span>
+          </div>
+          <input id="sd-size-range" type="range" min="14" max="34" step="2" value="20" style="width:100%;" />
+        </div>
+
+        <div style="margin-bottom:12px;">
+          <div style="font-size:11.5px;font-weight:600;margin-bottom:6px;">Flown Paths (FOV Only)</div>
+          <div class="sd-grid-3" id="sd-path-modes">
+            <button type="button" class="sd-btn active" data-path="all">All</button>
+            <button type="button" class="sd-btn" data-path="selected">Selected</button>
+            <button type="button" class="sd-btn" data-path="off">Off</button>
+          </div>
+        </div>
+
+        <div style="margin-bottom:12px;">
+          <div style="font-size:11.5px;font-weight:600;margin-bottom:6px;">Schedule Timezone</div>
+          <div class="sd-grid-3" id="sd-tz-modes">
+            <button type="button" class="sd-btn active" data-tz="airport">Airport</button>
+            <button type="button" class="sd-btn" data-tz="local">My Local</button>
+            <button type="button" class="sd-btn" data-tz="utc">UTC</button>
+          </div>
+        </div>
+
+        <div style="margin-bottom:12px;">
+          <div style="font-size:11.5px;font-weight:600;margin-bottom:6px;">Basemap</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;" id="sd-basemaps">
+            <button type="button" class="sd-btn active" data-map="auto">Auto</button>
+            <button type="button" class="sd-btn" data-map="light">Light</button>
+            <button type="button" class="sd-btn" data-map="dark">Dark</button>
+            <button type="button" class="sd-btn" data-map="osm">OSM</button>
+            <button type="button" class="sd-btn" data-map="satellite">Satellite</button>
+          </div>
+        </div>
+
+        <div class="sd-grid-2" id="sd-toggles">
+          <button type="button" class="sd-btn active" data-toggle="locate">Locate Me</button>
+          <button type="button" class="sd-btn" data-toggle="labels">Plane Labels</button>
+          <button type="button" class="sd-btn active" data-toggle="metar">METAR Colors</button>
+          <button type="button" class="sd-btn active" data-toggle="ground">Ground Traffic</button>
+        </div>
+
+        <div style="margin-top:12px;">
+          <div style="font-size:11.5px;font-weight:600;margin-bottom:4px;">Custom Backend Relay (Optional)</div>
+          <input id="sd-api-base" class="sd-input" style="width:100%;box-sizing:border-box;" type="url" placeholder="Optional https://site.netlify.app" />
+        </div>
+      </div>
+
+      <div class="sd-dock-wrap">
+        <div class="sd-dock" id="sd-dock">
+          <span style="font-weight:700;font-size:12.5px;padding:0 6px;">SkyDeck</span>
+          <input id="sd-search" class="sd-input" style="width:140px;" placeholder="Callsign / SQK / IATA" />
+          <select id="sd-region" class="sd-select" aria-label="Region">
+            <option value="cn">China</option>
+            <option value="asia">East Asia</option>
+            <option value="eu">Europe</option>
+            <option value="na">N. America</option>
+            <option value="global">Global</option>
+          </select>
+          <button type="button" class="sd-btn" id="sd-locate-btn">Locate</button>
+          <button type="button" class="sd-btn active" data-phase="all">All</button>
+          <button type="button" class="sd-btn" data-phase="air">Air</button>
+          <button type="button" class="sd-btn" data-phase="ground">GND</button>
+          <button type="button" class="sd-btn" data-dbfilter="ladd" title="Toggle LADD only">LADD</button>
+          <button type="button" class="sd-btn" data-dbfilter="military" title="Toggle Military only">MIL</button>
+          <button type="button" class="sd-btn" id="sd-settings-btn">Settings</button>
+          <button type="button" class="sd-btn" id="sd-theme-btn" style="width:84px;">Light</button>
+          <button type="button" class="sd-btn" id="sd-dock-hide">Hide</button>
+        </div>
+      </div>
+      <button type="button" class="sd-btn sd-dock-show" id="sd-dock-show" style="display:none;">Show Dock</button>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script data-skydeck-static>
+      (function () {
+        if (!window.L) return;
+        const HUBS = [
+          {icao:'ZBAA',iata:'PEK',name:'Beijing Capital',city:'Beijing',lat:40.0799,lon:116.6031,tz:'Asia/Shanghai',tier:1},
+          {icao:'ZBAD',iata:'PKX',name:'Beijing Daxing',city:'Beijing',lat:39.5098,lon:116.4105,tz:'Asia/Shanghai',tier:1},
+          {icao:'ZSPD',iata:'PVG',name:'Shanghai Pudong',city:'Shanghai',lat:31.1443,lon:121.8083,tz:'Asia/Shanghai',tier:1},
+          {icao:'ZGGG',iata:'CAN',name:'Guangzhou Baiyun',city:'Guangzhou',lat:23.3924,lon:113.2988,tz:'Asia/Shanghai',tier:1},
+          {icao:'ZGSZ',iata:'SZX',name:'Shenzhen Baoan',city:'Shenzhen',lat:22.6393,lon:113.8107,tz:'Asia/Shanghai',tier:1},
+          {icao:'ZUUU',iata:'CTU',name:'Chengdu Shuangliu',city:'Chengdu',lat:30.5785,lon:103.9471,tz:'Asia/Shanghai',tier:1},
+          {icao:'VHHH',iata:'HKG',name:'Hong Kong Intl',city:'Hong Kong',lat:22.3080,lon:113.9185,tz:'Asia/Hong_Kong',tier:1},
+          {icao:'RJTT',iata:'HND',name:'Tokyo Haneda',city:'Tokyo',lat:35.5494,lon:139.7798,tz:'Asia/Tokyo',tier:1},
+          {icao:'WSSS',iata:'SIN',name:'Singapore Changi',city:'Singapore',lat:1.3644,lon:103.9915,tz:'Asia/Singapore',tier:1},
+          {icao:'EGLL',iata:'LHR',name:'London Heathrow',city:'London',lat:51.4700,lon:-0.4543,tz:'Europe/London',tier:1},
+          {icao:'LFPG',iata:'CDG',name:'Paris Charles de Gaulle',city:'Paris',lat:49.0097,lon:2.5479,tz:'Europe/Paris',tier:1},
+          {icao:'EDDF',iata:'FRA',name:'Frankfurt',city:'Frankfurt',lat:50.0379,lon:8.5622,tz:'Europe/Berlin',tier:1},
+          {icao:'OMDB',iata:'DXB',name:'Dubai Intl',city:'Dubai',lat:25.2532,lon:55.3657,tz:'Asia/Dubai',tier:1},
+          {icao:'KJFK',iata:'JFK',name:'New York JFK',city:'New York',lat:40.6413,lon:-73.7781,tz:'America/New_York',tier:1},
+          {icao:'KLAX',iata:'LAX',name:'Los Angeles Intl',city:'Los Angeles',lat:33.9416,lon:-118.4085,tz:'America/Los_Angeles',tier:1},
+          {icao:'KSFO',iata:'SFO',name:'San Francisco Intl',city:'San Francisco',lat:37.6213,lon:-122.3790,tz:'America/Los_Angeles',tier:1},
+        ];
+        const REGIONS = {
+          cn: {center:[35.2, 108.5], zoom:5},
+          asia: {center:[31.0, 121.0], zoom:5},
+          eu: {center:[49.5, 9.0], zoom:5},
+          na: {center:[39.0, -96.0], zoom:4},
+          global: {center:[24.0, 20.0], zoom:3},
+        };
+        const GEOFS = [
+          {alt:0,rgb:[250,204,21]},
+          {alt:10000,rgb:[34,197,94]},
+          {alt:25000,rgb:[37,99,235]},
+          {alt:30000,rgb:[124,92,191]},
+          {alt:40000,rgb:[190,24,93]},
+          {alt:50000,rgb:[244,114,182]},
+        ];
+        function altColor(ft) {
+          const a = Math.max(0, ft || 0);
+          if (a >= 50000) return 'rgb(244,114,182)';
+          for (let i = 0; i < GEOFS.length - 1; i++) {
+            if (a >= GEOFS[i].alt && a <= GEOFS[i + 1].alt) {
+              const t = (a - GEOFS[i].alt) / (GEOFS[i + 1].alt - GEOFS[i].alt);
+              const r = Math.round(GEOFS[i].rgb[0] + (GEOFS[i + 1].rgb[0] - GEOFS[i].rgb[0]) * t);
+              const g = Math.round(GEOFS[i].rgb[1] + (GEOFS[i + 1].rgb[1] - GEOFS[i].rgb[1]) * t);
+              const b = Math.round(GEOFS[i].rgb[2] + (GEOFS[i + 1].rgb[2] - GEOFS[i].rgb[2]) * t);
+              return `rgb(${r},${g},${b})`;
+            }
+          }
+          return '#FACC15';
+        }
+
+        const state = {
+          theme: 'light',
+          basemap: 'auto',
+          planeSize: 20,
+          pathMode: 'all',
+          tzMode: 'airport',
+          phase: 'all',
+          dbFilter: 'all',
+          locate: true,
+          labels: false,
+          metar: true,
+          ground: true,
+          search: '',
+          selectedFlightId: null,
+          selectedAirport: null,
+          followSelected: false,
+          isolateSelected: false,
+          flights: [],
+          stickyRegistry: new Map(),
+          airports: [...HUBS],
+          globalAirports: null,
+          trails: new Map(),
+          pool: new Map(),
+          sprites: new Map(),
+          hitTargets: [],
+          surfaceKey: '',
+          zooming: false,
+        };
+
+        const map = L.map('sd-map', {center:[39.9, 116.4], zoom:6, minZoom:3, maxZoom:20, zoomControl:false, preferCanvas:true});
+        L.control.zoom({position:'topright'}).addTo(map);
+        const renderer = L.canvas({padding:0.25});
+        const surfaceLayer = L.layerGroup().addTo(map);
+        const pathLayer = L.layerGroup().addTo(map);
+        const airportLayer = L.layerGroup().addTo(map);
+        const trailLayer = L.layerGroup().addTo(map);
+        const userLayer = L.layerGroup().addTo(map);
+        const flightCanvas = document.createElement('canvas');
+        flightCanvas.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:420;';
+        document.getElementById('sd-static-app').appendChild(flightCanvas);
+        const flightCtx = flightCanvas.getContext('2d');
+        function resizeFlightCanvas() {
+          const dpr = Math.min(2, window.devicePixelRatio || 1);
+          const w = window.innerWidth, h = window.innerHeight;
+          flightCanvas.width = Math.max(1, Math.round(w * dpr));
+          flightCanvas.height = Math.max(1, Math.round(h * dpr));
+          if (flightCtx) flightCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        }
+        resizeFlightCanvas();
+        window.addEventListener('resize', resizeFlightCanvas);
+        let baseLayers = [];
+
+        function setBasemap() {
+          baseLayers.forEach((l) => map.removeLayer(l));
+          baseLayers = [];
+          const eff = state.basemap === 'auto' ? (state.theme === 'dark' ? 'dark' : 'light') : state.basemap;
+          const opts = {keepBuffer:4, updateWhenIdle:true, updateWhenZooming:false};
+          if (eff === 'satellite') {
+            baseLayers.push(L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {...opts, maxNativeZoom:17, maxZoom:20}));
+            baseLayers.push(L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}', {...opts, maxNativeZoom:15, maxZoom:20, opacity:0.85}));
+          } else if (eff === 'osm') {
+            baseLayers.push(L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {...opts, maxNativeZoom:19, maxZoom:20}));
+          } else if (eff === 'dark') {
+            baseLayers.push(L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {...opts, maxNativeZoom:16, maxZoom:20}));
+            baseLayers.push(L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}', {...opts, maxNativeZoom:15, maxZoom:20, opacity:0.9}));
+          } else {
+            baseLayers.push(L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', {...opts, maxNativeZoom:16, maxZoom:20}));
+            baseLayers.push(L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}', {...opts, maxNativeZoom:15, maxZoom:20, opacity:0.95}));
+          }
+          baseLayers.forEach((l) => { l.addTo(map); l.bringToBack(); });
+          if (baseLayers.length > 1) baseLayers[0].bringToBack();
+        }
+        setBasemap();
+
+        function getEmergMeta(sqk) {
+          const c = String(sqk || '').trim();
+          if (c === '7700') return {code:'7700', label:'EMERG 7700'};
+          if (c === '7600') return {code:'7600', label:'COMMS 7600'};
+          if (c === '7500') return {code:'7500', label:'HIJACK 7500'};
+          return null;
+        }
+
+        function buildStaticAcSvg(typeStr, callsign, sz, fill, stroke) {
+          const t = String(typeStr || '').toUpperCase();
+          const cs = String(callsign || '').toUpperCase();
+          if (/^A38/.test(t)) return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="${sz}" height="${sz}" fill="${fill}" stroke="${stroke}" stroke-width="1.2" stroke-linejoin="round"><path d="M16 1.5C17.2 1.5 18.2 3.8 18.2 7.2V11.2L30 17.5V19.6L18.2 17.2V24.6L22.5 27.8V29.6L16 28.2L9.5 29.6V27.8L13.8 24.6V17.2L2 19.6V17.5L13.8 11.2V7.2C13.8 3.8 14.8 1.5 16 1.5Z"/><ellipse cx="9" cy="14.2" rx="1" ry="1.8" fill="${stroke}" stroke="none"/><ellipse cx="5.4" cy="16" rx="0.9" ry="1.6" fill="${stroke}" stroke="none"/><ellipse cx="23" cy="14.2" rx="1" ry="1.8" fill="${stroke}" stroke="none"/><ellipse cx="26.6" cy="16" rx="0.9" ry="1.6" fill="${stroke}" stroke="none"/></svg>`;
+          if (/^(B74|A34|AN124|IL96|C5M)/.test(t)) return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="${sz}" height="${sz}" fill="${fill}" stroke="${stroke}" stroke-width="1.2" stroke-linejoin="round"><path d="M16 1.2L17.6 5.5V11.6L29.5 18.8V20.8L17.6 17.4V25.2L21.8 28.4V30L16 28.6L10.2 30V28.4L14.4 25.2V17.4L2.5 20.8V18.8L14.4 11.6V5.5L16 1.2Z"/><rect x="8.8" y="13.8" width="1.6" height="3" rx="0.6" fill="${stroke}" stroke="none"/><rect x="5" y="16" width="1.4" height="2.6" rx="0.6" fill="${stroke}" stroke="none"/><rect x="21.6" y="13.8" width="1.6" height="3" rx="0.6" fill="${stroke}" stroke="none"/><rect x="25.6" y="16" width="1.4" height="2.6" rx="0.6" fill="${stroke}" stroke="none"/></svg>`;
+          if (/^(EC\d|H1\d|H2\d|AS3|AW1|R44|R66|UH\d|CH\d|S76|S92)/.test(t)) return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="${sz}" height="${sz}" fill="${fill}" stroke="${stroke}" stroke-width="1.2" stroke-linejoin="round"><path d="M16 6.5C18.4 6.5 19.6 9 19.6 12.5C19.6 15.6 18.2 17.5 17 18.2V26.5L19.5 28V29.5H12.5V28L15 26.5V18.2C13.8 17.5 12.4 15.6 12.4 12.5C12.4 9 13.6 6.5 16 6.5Z"/><line x1="5.5" y1="4.5" x2="26.5" y2="21.5" stroke="${stroke}" stroke-width="2" stroke-linecap="round"/><line x1="26.5" y1="4.5" x2="5.5" y2="21.5" stroke="${stroke}" stroke-width="2" stroke-linecap="round"/><circle cx="16" cy="13" r="2.2" fill="${stroke}" stroke="none"/></svg>`;
+          if (/^(F14|F15|F16|F18|FA18|F22|F35|EUFI|RFAL|GRIP|T38|J10|J11|J15|J20|SU2|SU3|SU5|MIG)/.test(t)) return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="${sz}" height="${sz}" fill="${fill}" stroke="${stroke}" stroke-width="1.2" stroke-linejoin="round"><path d="M16 1.5L17.8 8.5L27.8 18.5V21.5L18.4 19.5L18 24L22.2 28.2V30L17 28L16 29.5L15 28L9.8 30V28.2L14 24L13.6 19.5L4.2 21.5V18.5L14.2 8.5L16 1.5Z"/></svg>`;
+          if (/^(C130|C30J|C17|Y20|A400|IL76|K35R|KC46|KC10|P8)/.test(t) || /^(RCH|REACH|NATO|SAM|SPAR|RRR|AF1|AF2)/.test(cs)) return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="${sz}" height="${sz}" fill="${fill}" stroke="${stroke}" stroke-width="1.2" stroke-linejoin="round"><path d="M16 2.2C17.6 2.2 18.6 4.8 18.6 8.2V11.2L30.2 15.8V18.6L18.6 17.2V25.2L23.2 28.2V30L16 28.8L8.8 30V28.2L13.4 25.2V17.2L1.8 18.6V15.8L13.4 11.2V8.2C13.4 4.8 14.4 2.2 16 2.2Z"/><rect x="8.4" y="12.2" width="1.6" height="2.8" rx="0.5" fill="${stroke}" stroke="none"/><rect x="5" y="13.5" width="1.5" height="2.5" rx="0.5" fill="${stroke}" stroke="none"/><rect x="22" y="12.2" width="1.6" height="2.8" rx="0.5" fill="${stroke}" stroke="none"/><rect x="25.5" y="13.5" width="1.5" height="2.5" rx="0.5" fill="${stroke}" stroke="none"/></svg>`;
+          if (/^(B77|B78|A35|A33|B76|MD11|DC10)/.test(t)) return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="${sz}" height="${sz}" fill="${fill}" stroke="${stroke}" stroke-width="1.2" stroke-linejoin="round"><path d="M16 1.4C17.1 1.4 17.8 3.6 17.8 6.8V11.8L29.4 18.2V20.2L17.8 17.1V25L21.8 28.2V29.8L16 28.5L10.2 29.8V28.2L14.2 25V17.1L2.6 20.2V18.2L14.2 11.8V6.8C14.2 3.6 14.9 1.4 16 1.4Z"/><ellipse cx="10.2" cy="14.1" rx="1.15" ry="2.1" fill="${stroke}" stroke="none"/><ellipse cx="21.8" cy="14.1" rx="1.15" ry="2.1" fill="${stroke}" stroke="none"/></svg>`;
+          if (/^(AT4|AT7|DH8|DHC|SF34|PC12|C208|MA60)/.test(t)) return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="${sz}" height="${sz}" fill="${fill}" stroke="${stroke}" stroke-width="1.2" stroke-linejoin="round"><path d="M16 2.8C16.9 2.8 17.5 4.8 17.5 7.5V12.2L29.5 13.4V15.8L17.5 16.4V25.4L21.8 28.4V29.8L16 28.7L10.2 29.8V28.4L14.5 25.4V16.4L2.5 15.8V13.4L14.5 12.2V7.5C14.5 4.8 15.1 2.8 16 2.8Z"/><rect x="9.6" y="10.6" width="1.7" height="3.2" rx="0.6" fill="${stroke}" stroke="none"/><rect x="20.7" y="10.6" width="1.7" height="3.2" rx="0.6" fill="${stroke}" stroke="none"/></svg>`;
+          if (/^(C15|C17|C18|C20|P28|PA2|SR2|DA4|BE3)/.test(t)) return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="${sz}" height="${sz}" fill="${fill}" stroke="${stroke}" stroke-width="1.2" stroke-linejoin="round"><line x1="12" y1="3.4" x2="20" y2="3.4" stroke="${stroke}" stroke-width="1.8" stroke-linecap="round"/><path d="M16 4.2L17.2 7.4V11.2L29 12V15.4L17.2 15.6L16.8 25.2L20.5 27.6V29.2L16 28.4L11.5 29.2V27.6L15.2 25.2L14.8 15.6L3 15.4V12L14.8 11.2V7.4L16 4.2Z"/></svg>`;
+          if (/^(GLF|G15|G55|G65|GLEX|GL5|GL6|GL7|CL3|CL6|C56|C68|FA7|FA8|E55P|LJ|PC24)/.test(t)) return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="${sz}" height="${sz}" fill="${fill}" stroke="${stroke}" stroke-width="1.2" stroke-linejoin="round"><path d="M16 2.2L17.2 6.8V14.2L26.5 19.2V20.7L17.2 18.1V22.8L19.4 23.5V25L17.2 24.9V26.8L20.4 29.4V30.5L16 29.4L11.6 30.5V29.4L14.8 26.8V24.9L12.6 25V23.5L14.8 22.8V18.1L5.5 20.7V19.2L14.8 14.2V6.8L16 2.2Z"/></svg>`;
+          if (/^(CRJ|E13|E14|E17|E19|ERJ|MD8|MD9|B712|C909|ARJ21)/.test(t)) return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="${sz}" height="${sz}" fill="${fill}" stroke="${stroke}" stroke-width="1.2" stroke-linejoin="round"><path d="M16 2.5C16.9 2.5 17.4 4.4 17.4 7V13.4L27.4 18.6V20.4L17.4 17.8V22.8L20 23.4V25.2L17.4 25.1V26.4L21 29.1V30.4L16 29.4L11 30.4V29.1L14.6 26.4V25.1L12 25.2V23.4L14.6 22.8V17.8L4.6 20.4V18.6L14.6 13.4V7C14.6 4.4 15.1 2.5 16 2.5Z"/></svg>`;
+          return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="${sz}" height="${sz}" fill="${fill}" stroke="${stroke}" stroke-width="1.2" stroke-linejoin="round"><path d="M16 2C16.9 2 17.5 4.2 17.5 7.4V12.2L28 17.8V19.7L17.5 16.9V24.8L21 27.6V29.3L16 28.1L11 29.3V27.6L14.5 24.8V16.9L4 19.7V17.8L14.5 12.2V7.4C14.5 4.2 15.1 2 16 2Z"/></svg>`;
+        }
+
+        function getAcModelKey(typeStr, callsign) {
+          const t = String(typeStr || '').toUpperCase();
+          const cs = String(callsign || '').toUpperCase();
+          if (/^A38/.test(t)) return 'a380';
+          if (/^(B74|A34|AN124|IL96|C5M)/.test(t)) return 'heavy4';
+          if (/^(EC\d|H1\d|H2\d|AS3|AW1|R44|R66|UH\d|CH\d|S76|S92)/.test(t)) return 'heli';
+          if (/^(F14|F15|F16|F18|FA18|F22|F35|EUFI|RFAL|GRIP|T38|J10|J11|J15|J20|SU2|SU3|SU5|MIG)/.test(t)) return 'fighter';
+          if (/^(C130|C30J|C17|Y20|A400|IL76|K35R|KC46|KC10|P8)/.test(t) || /^(RCH|REACH|NATO|SAM|SPAR|RRR|AF1|AF2)/.test(cs)) return 'mil';
+          if (/^(B77|B78|A35|A33|B76|MD11|DC10)/.test(t)) return 'wide2';
+          if (/^(AT4|AT7|DH8|DHC|SF34|PC12|C208|MA60)/.test(t)) return 'turbo';
+          if (/^(C15|C17|C18|C20|P28|PA2|SR2|DA4|BE3)/.test(t)) return 'light';
+          if (/^(GLF|G15|G55|G65|GLEX|GL5|GL6|GL7|CL3|CL6|C56|C68|FA7|FA8|E55P|LJ|PC24)/.test(t)) return 'biz';
+          if (/^(CRJ|E13|E14|E17|E19|ERJ|MD8|MD9|B712|C909|ARJ21)/.test(t)) return 'reg';
+          return 'nb';
+        }
+
+        function getSprite(typeStr, callsign, fill, stroke) {
+          const mk = getAcModelKey(typeStr, callsign);
+          const key = `${mk}|${fill}|${stroke}`;
+          const hit = state.sprites.get(key);
+          if (hit) return hit;
+          const svg = buildStaticAcSvg(typeStr, callsign, 64, fill, stroke);
+          const img = new Image();
+          img.onload = () => drawCanvasPlanes(performance.now());
+          img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+          state.sprites.set(key, img);
+          return img;
+        }
+
+        function smoothChain(raw, f, b) {
+          const pts = [];
+          for (const p of raw) {
+            const prev = pts[pts.length - 1];
+            if (prev) {
+              const d = Math.hypot(p.lat - prev.lat, p.lon - prev.lon);
+              if (d < 0.0002 || d > 0.32) continue;
+            }
+            pts.push(p);
+          }
+          const last = pts[pts.length - 1];
+          if (!last || Math.hypot(f.lat - last.lat, f.lon - last.lon) < 0.32) {
+            pts.push({lat:f.lat, lon:f.lon, alt:f.alt});
+          }
+          if (pts.length < 2) return [];
+          const inFov = [];
+          if (!b) {
+            inFov.push(pts);
+          } else {
+            let cur = [];
+            for (const p of pts) {
+              if (b.contains([p.lat, p.lon])) cur.push(p);
+              else { if (cur.length >= 2) inFov.push(cur); cur = []; }
+            }
+            if (cur.length >= 2) inFov.push(cur);
+          }
+          return inFov.map((c) => {
+            let arr = c;
+            for (let pass = 0; pass < 2 && arr.length >= 3; pass++) {
+              const next = [arr[0]];
+              for (let i = 0; i < arr.length - 1; i++) {
+                next.push({lat:0.75*arr[i].lat+0.25*arr[i+1].lat, lon:0.75*arr[i].lon+0.25*arr[i+1].lon, alt:0.75*arr[i].alt+0.25*arr[i+1].alt});
+                next.push({lat:0.25*arr[i].lat+0.75*arr[i+1].lat, lon:0.25*arr[i].lon+0.75*arr[i+1].lon, alt:0.25*arr[i].alt+0.75*arr[i+1].alt});
+              }
+              next.push(arr[arr.length - 1]);
+              arr = next;
+            }
+            return arr;
+          });
+        }
+
+        function drawGradient(pts, layer, weight, op) {
+          for (let i = 1; i < pts.length; i++) {
+            L.polyline([[pts[i-1].lat, pts[i-1].lon], [pts[i].lat, pts[i].lon]], {
+              renderer, color: altColor((pts[i-1].alt + pts[i].alt) * 0.5), weight, opacity: op, interactive: false
+            }).addTo(layer);
+          }
+        }
+
+        function drawCanvasPlanes(now) {
+          if (!flightCtx) return;
+          const w = window.innerWidth, h = window.innerHeight;
+          flightCtx.clearRect(0, 0, w, h);
+          const b = map.getBounds().pad(0.18);
+          const z = map.getZoom();
+          const showLbl = state.labels || z >= 9;
+          const hits = [];
+          const drawList = [];
+
+          for (const e of state.pool.values()) {
+            const f = e.flight;
+            const isSel = state.selectedFlightId === f.id;
+            if (!isSel && !b.contains([e.rLat, e.rLon])) continue;
+            const em = getEmergMeta(f.squawk);
+            const rank = em ? 4 : isSel ? 3 : f.isLadd ? 2 : f.isMilitary ? 1 : 0;
+            drawList.push({e, f, isSel, em, rank});
+          }
+          drawList.sort((a, b2) => a.rank - b2.rank);
+
+          const pulse = (now % 1350) / 1350;
+          const zoomScale = z <= 4 ? 0.8 : z <= 6 ? 0.92 : 1;
+
+          for (const item of drawList) {
+            const {e, f, isSel, em} = item;
+            const pt = map.latLngToContainerPoint([e.rLat, e.rLon]);
+            const x = pt.x, y = pt.y;
+            if (x < -40 || y < -40 || x > w + 40 || y > h + 40) continue;
+
+            const dbTag = f.isLadd ? {label:'LADD', bg:'#7E22CE', fill:'#C084FC'} : f.isMilitary ? {label:'MIL', bg:'#047857', fill:'#34D399'} : f.isPia ? {label:'PIA', bg:'#0E7490', fill:'#22D3EE'} : null;
+            const sz = Math.max(12, Math.min(40, (em ? Math.max(state.planeSize + 6, 26) : isSel ? state.planeSize + 6 : f.onGround ? Math.max(13, state.planeSize - 3) : state.planeSize) * zoomScale));
+            const fill = em ? '#EF4444' : isSel ? '#F59E0B' : dbTag ? dbTag.fill : '#F9D949';
+            const stroke = em ? '#ffffff' : isSel ? '#ffffff' : f.isLadd ? '#F3E8FF' : (state.theme === 'dark' ? '#0B0E14' : '#13233a');
+
+            if (em) {
+              flightCtx.save();
+              flightCtx.beginPath();
+              flightCtx.arc(x, y, sz * (0.6 + pulse * 0.9), 0, Math.PI * 2);
+              flightCtx.strokeStyle = `rgba(239,68,68,${(1 - pulse).toFixed(2)})`;
+              flightCtx.lineWidth = 2;
+              flightCtx.stroke();
+              flightCtx.restore();
+            } else if (f.isLadd || isSel) {
+              flightCtx.save();
+              flightCtx.beginPath();
+              flightCtx.arc(x, y, sz * 0.72, 0, Math.PI * 2);
+              flightCtx.strokeStyle = isSel ? 'rgba(245,158,11,0.9)' : 'rgba(168,85,247,0.88)';
+              flightCtx.setLineDash(isSel ? [] : [3, 3]);
+              flightCtx.lineWidth = 1.6;
+              flightCtx.stroke();
+              flightCtx.restore();
+            }
+
+            const img = getSprite(f.type, f.callsign, fill, stroke);
+            if (img.complete && img.naturalWidth > 0) {
+              flightCtx.save();
+              flightCtx.translate(x, y);
+              flightCtx.rotate((e.rTrack * Math.PI) / 180);
+              flightCtx.drawImage(img, -sz * 0.5, -sz * 0.5, sz, sz);
+              flightCtx.restore();
+            } else {
+              flightCtx.beginPath();
+              flightCtx.arc(x, y, Math.max(3, sz * 0.24), 0, Math.PI * 2);
+              flightCtx.fillStyle = fill;
+              flightCtx.fill();
+            }
+
+            if (em || isSel || (showLbl && z >= 8)) {
+              const txt = em ? `${em.label} · ${f.callsign}` : `${dbTag ? '['+dbTag.label+'] ' : ''}${f.callsign}${f.onGround ? ' GND' : ' FL'+Math.round(f.alt/100)}`;
+              flightCtx.font = '700 10px "JetBrains Mono", monospace';
+              const tw = flightCtx.measureText(txt).width;
+              const bx = x + sz * 0.52, by = y - 8;
+              flightCtx.fillStyle = em ? '#DC2626' : dbTag ? dbTag.bg : '#F9D949';
+              flightCtx.fillRect(bx, by, tw + 8, 16);
+              flightCtx.strokeStyle = isSel || em ? '#ffffff' : 'rgba(19,35,58,0.45)';
+              flightCtx.lineWidth = 1;
+              flightCtx.strokeRect(bx, by, tw + 8, 16);
+              flightCtx.fillStyle = (em || dbTag) ? '#ffffff' : '#13233a';
+              flightCtx.fillText(txt, bx + 4, by + 11.5);
+            }
+
+            hits.push({x, y, r: Math.max(15, sz * 0.65), flight: f});
+          }
+          state.hitTargets = hits;
+        }
+
+        function renderFlights() {
+          pathLayer.clearLayers();
+          trailLayer.clearLayers();
+          const b = map.getBounds();
+          const z = map.getZoom();
+          const q = state.search.trim().toUpperCase();
+          let visible = state.flights.filter((f) => {
+            if (!state.ground && f.onGround) return false;
+            if (state.phase === 'air' && f.onGround) return false;
+            if (state.phase === 'ground' && !f.onGround) return false;
+            if (state.dbFilter === 'ladd' && !f.isLadd) return false;
+            if (state.dbFilter === 'military' && !f.isMilitary) return false;
+            if (q && !(f.callsign.includes(q) || f.icao24.toUpperCase().includes(q) || (f.squawk||'').includes(q) || (f.reg||'').toUpperCase().includes(q) || (f.ownOp||'').toUpperCase().includes(q))) return false;
+            return true;
+          });
+          if (state.isolateSelected && state.selectedFlightId) {
+            visible = visible.filter((f) => f.id === state.selectedFlightId);
+          }
+          document.getElementById('sd-count-pill').textContent = visible.length + ' ACFT';
+          const active = new Set();
+          const nowMs = performance.now();
+          let trailBudget = z >= 8 ? 260 : 110;
+
+          for (const f of visible) {
+            active.add(f.id);
+            const isSel = state.selectedFlightId === f.id;
+            const inView = b.contains([f.lat, f.lon]);
+            if ((state.isolateSelected && isSel) || (state.pathMode !== 'off' && inView && ((state.pathMode === 'all' && !f.onGround && !state.isolateSelected && trailBudget > 0) || isSel))) {
+              if (!isSel) trailBudget--;
+              const raw = state.trails.get(f.icao24) || [];
+              const slice = (state.isolateSelected && isSel) ? raw : raw.slice(-24);
+              const chains = smoothChain(slice, f, (state.isolateSelected && isSel) ? null : b);
+              for (const c of chains) drawGradient(c, isSel ? trailLayer : pathLayer, isSel ? (state.isolateSelected ? 4 : 3.4) : 2.1, isSel ? 0.96 : 0.8);
+            }
+            const pooled = state.pool.get(f.id);
+            if (pooled) {
+              const changed = Math.abs(f.lat - pooled.tLat) > 1e-6 || Math.abs(f.lon - pooled.tLon) > 1e-6 || Math.abs(f.track - pooled.tTrack) > 0.2;
+              pooled.flight = f;
+              if (changed) {
+                const jump = Math.hypot(f.lat - pooled.rLat, f.lon - pooled.rLon);
+                pooled.fLat = jump > 1.2 ? f.lat : pooled.rLat;
+                pooled.fLon = jump > 1.2 ? f.lon : pooled.rLon;
+                pooled.fTrack = jump > 1.2 ? f.track : pooled.rTrack;
+                if (jump > 1.2) { pooled.rLat = f.lat; pooled.rLon = f.lon; }
+                pooled.tLat = f.lat; pooled.tLon = f.lon; pooled.tTrack = f.track;
+                pooled.bStart = nowMs; pooled.bDur = 1500; pooled.uMs = nowMs;
+              }
+            } else {
+              state.pool.set(f.id, {flight:f, rLat:f.lat, rLon:f.lon, rTrack:f.track, fLat:f.lat, fLon:f.lon, fTrack:f.track, tLat:f.lat, tLon:f.lon, tTrack:f.track, bStart:nowMs, bDur:0, uMs:nowMs});
+            }
+          }
+          for (const id of state.pool.keys()) {
+            if (!active.has(id)) state.pool.delete(id);
+          }
+          drawCanvasPlanes(nowMs);
+        }
+
+        map.on('click', (ev) => {
+          const cx = ev.containerPoint.x, cy = ev.containerPoint.y;
+          let best = null, bestD = Infinity;
+          for (const t of state.hitTargets) {
+            const d = Math.hypot(cx - t.x, cy - t.y);
+            if (d <= t.r && d < bestD) { bestD = d; best = t.flight; }
+          }
+          if (best) selectFlight(best);
+        });
+
+        // Smooth 60fps Canvas2D plane glide & zoom-preserving Follow pan loop
+        let lastFrame = 0;
+        let lastFollowMs = 0;
+        function animate(now) {
+          requestAnimationFrame(animate);
+          if (state.zooming || now - lastFrame < 24) return;
+          lastFrame = now;
+          const b = map.getBounds().pad(0.25);
+          for (const e of state.pool.values()) {
+            const isFollow = state.followSelected && state.selectedFlightId === e.flight.id;
+            if (!isFollow && !b.contains([e.tLat, e.tLon])) continue;
+            const t = e.bDur > 0 ? Math.min(1, Math.max(0, (now - e.bStart) / e.bDur)) : 1;
+            const ease = 1 - Math.pow(1 - t, 3);
+            const glideMax = e.flight.onGround ? 4.5 : 9;
+            const glideSec = Math.min(glideMax, Math.max(0, (now - e.uMs) / 1000));
+            let exLat = e.tLat, exLon = e.tLon;
+            if (e.flight.spd > (e.flight.onGround ? 4 : 25) && glideSec > 0.05) {
+              const distNm = e.flight.spd * (glideSec / 3600);
+              exLat += (distNm / 60) * Math.cos(e.tTrack * Math.PI / 180);
+              exLon += ((distNm / 60) * Math.sin(e.tTrack * Math.PI / 180)) / Math.max(0.15, Math.cos(e.tLat * Math.PI / 180));
+            }
+            const nLat = e.fLat + (exLat - e.fLat) * ease;
+            const nLon = e.fLon + (exLon - e.fLon) * ease;
+            const dTrk = ((e.tTrack - e.fTrack + 540) % 360) - 180;
+            const nTrk = (e.fTrack + dTrk * ease + 360) % 360;
+            e.rLat = nLat; e.rLon = nLon; e.rTrack = nTrk;
+            if (isFollow && now - lastFollowMs > 110) {
+              lastFollowMs = now;
+              map.panTo([nLat, nLon], {animate: false});
+            }
+          }
+          drawCanvasPlanes(now);
+        }
+        requestAnimationFrame(animate);
+
+        function renderAirports() {
+          airportLayer.clearLayers();
+          const b = map.getBounds();
+          const z = map.getZoom();
+          const source = state.globalAirports || HUBS;
+          const visible = source.filter((a) => {
+            if (!b.contains([a.lat, a.lon])) return false;
+            if (a.tier === 1) return true;
+            if (a.tier === 2) return z >= 6;
+            return z >= 8;
+          }).slice(0, 90);
+          for (const ap of visible) {
+            const isSel = state.selectedAirport && state.selectedAirport.icao === ap.icao;
+            const label = ap.iata || ap.icao;
+            const sz = isSel ? 13 : ap.tier === 1 ? 10 : 8;
+            const icon = L.divIcon({
+              className: 'skydeck-airport-label',
+              iconSize: [70, 20],
+              iconAnchor: [sz / 2, 10],
+              html: `<div style="display:inline-flex;align-items:center;cursor:pointer;"><div style="width:${sz}px;height:${sz}px;border-radius:9999px;background:${isSel ? '#F59E0B' : '#13233a'};border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.4);"></div><span style="margin-left:4px;padding:1px 6px;border-radius:9999px;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;background:${isSel ? '#13233a' : 'rgba(242,247,254,0.95)'};color:${isSel ? '#fff' : '#13233a'};border:1px solid rgba(19,35,58,0.25);">${label}</span></div>`
+            });
+            const mk = L.marker([ap.lat, ap.lon], {icon, zIndexOffset: isSel ? 650 : 200});
+            mk.on('click', () => selectAirport(ap));
+            mk.addTo(airportLayer);
+          }
+        }
+
+        async function selectFlight(f) {
+          state.selectedFlightId = f.id;
+          state.selectedAirport = null;
+          renderFlights();
+          const em = getEmergMeta(f.squawk);
+          const sb = document.getElementById('sd-sidebar');
+          sb.classList.remove('hidden');
+          sb.innerHTML = `<div style="display:flex;flex-direction:column;height:100%;min-height:0;"><div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid var(--sd-border);flex-shrink:0;"><div><div style="font-size:16px;font-weight:700;">${f.callsign} ${em ? '<span style="background:#dc2626;color:#fff;padding:1px 6px;border-radius:999px;font-size:10px;">▲ '+em.label+'</span>' : ''}</div><div class="sd-mono" style="font-size:11px;color:var(--sd-muted);">${f.icao24.toUpperCase()} · ${f.type || 'ACFT'} · SQK ${f.squawk || '----'}</div></div><button type="button" class="sd-btn" id="sd-close-sb">Close</button></div><div style="flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:12px 14px 20px;"><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px;"><button type="button" class="sd-btn ${state.followSelected ? 'active' : ''}" id="sd-follow-btn">Follow</button><button type="button" class="sd-btn ${state.isolateSelected ? 'active' : ''}" id="sd-isolate-btn">Isolate</button></div><div id="sd-photo-box" style="width:100%;height:176px;background:var(--sd-sec);border:1px solid var(--sd-border);border-radius:12px;display:flex;align-items:center;justify-content:center;overflow:hidden;margin-bottom:10px;color:var(--sd-muted);font-size:11px;">Loading aircraft photo…</div><div class="sd-grid-2" style="gap:8px;font-size:12px;"><div style="padding:8px;border-radius:10px;background:var(--sd-sec);"><div style="font-size:10px;color:var(--sd-muted);">Altitude</div><div class="sd-mono" style="font-weight:700;">${f.onGround ? 'GND' : f.alt.toLocaleString() + ' ft'}</div></div><div style="padding:8px;border-radius:10px;background:var(--sd-sec);"><div style="font-size:10px;color:var(--sd-muted);">Ground Speed</div><div class="sd-mono" style="font-weight:700;">${Math.round(f.spd)} kt</div></div><div style="padding:8px;border-radius:10px;background:var(--sd-sec);"><div style="font-size:10px;color:var(--sd-muted);">Heading / Track</div><div class="sd-mono" style="font-weight:700;">${Math.round(f.track)}°</div></div><div style="padding:8px;border-radius:10px;background:var(--sd-sec);"><div style="font-size:10px;color:var(--sd-muted);">Squawk / Reg</div><div class="sd-mono" style="font-weight:700;">${f.squawk || '----'} · ${f.reg || 'N/A'}</div></div></div></div></div>`;
+          document.getElementById('sd-close-sb').onclick = () => { state.selectedFlightId = null; state.followSelected = false; state.isolateSelected = false; sb.classList.add('hidden'); renderFlights(); };
+          document.getElementById('sd-follow-btn').onclick = (e) => { state.followSelected = !state.followSelected; e.target.classList.toggle('active', state.followSelected); if (state.followSelected) map.panTo([f.lat, f.lon]); };
+          document.getElementById('sd-isolate-btn').onclick = (e) => { state.isolateSelected = !state.isolateSelected; e.target.classList.toggle('active', state.isolateSelected); renderFlights(); };
+          try {
+            const r = await fetch(`https://api.planespotters.net/pub/photos/hex/${encodeURIComponent(f.icao24)}`);
+            if (r.ok) {
+              const d = await r.json();
+              const p = d.photos && d.photos[0];
+              const src = p && (p.thumbnail_large?.src || p.thumbnail?.src);
+              const box = document.getElementById('sd-photo-box');
+              if (box && src) {
+                box.innerHTML = `<img src="${src}" alt="${f.callsign}" style="width:100%;height:100%;object-fit:cover;display:block;" />`;
+              } else if (box) {
+                box.textContent = 'No photo available';
+              }
+            }
+          } catch {
+            const box = document.getElementById('sd-photo-box');
+            if (box) box.textContent = 'Photo lookup unavailable';
+          }
+        }
+
+        const RELAYS = [
+          {id:'cors.lol', cooldown:0, last:0, min:2800, url:(u)=>'https://api.cors.lol/?url='+encodeURIComponent(u), unwrap:(t)=>t},
+          {id:'allorigins-raw', cooldown:0, last:0, min:1200, url:(u)=>'https://api.allorigins.win/raw?url='+encodeURIComponent(u), unwrap:(t)=>t},
+          {id:'allorigins-get', cooldown:0, last:0, min:1200, url:(u)=>'https://api.allorigins.win/get?url='+encodeURIComponent(u), unwrap:(t)=>{ try { const j = JSON.parse(t); return j?.status?.http_code >= 400 ? null : (j?.contents || null); } catch { return null; } }},
+        ];
+        let relayChain = Promise.resolve();
+        let pollCycle = 0;
+
+        const DEFAULT_CF_WORKER = 'https://royal-cherry-f2c2.feianthony666.workers.dev';
+        let laddCache = { ts: 0, ac: [] };
+        let milCache = { ts: 0, ac: [] };
+
+        function getCfWorker() {
+          try {
+            const w = new URLSearchParams(window.location.search).get('worker');
+            const norm = (s) => (s || '').trim().replace(/\/+$/, '').replace(/\?url=.*$/i, '');
+            if (w && /^https?:\/\//i.test(w)) { const v = norm(w); localStorage.setItem('skydeck-cf-worker', v); return v; }
+            const s = norm(localStorage.getItem('skydeck-cf-worker'));
+            if (/^https?:\/\//i.test(s)) return s;
+            const api = norm(localStorage.getItem('skydeck-api-base'));
+            if (/\.workers\.dev/i.test(api)) return api;
+            return DEFAULT_CF_WORKER;
+          } catch { return DEFAULT_CF_WORKER; }
+        }
+
+        function getCustomApi() {
+          try {
+            const p = new URLSearchParams(window.location.search).get('api');
+            const norm = (s) => (s || '').trim().replace(/\/+$/, '').replace(/\/api$/i, '');
+            if (p && /^https?:\/\//i.test(p) && !/\.workers\.dev/i.test(p)) { const v = norm(p); localStorage.setItem('skydeck-api-base', v); return v; }
+            const s = norm(localStorage.getItem('skydeck-api-base'));
+            return /^https?:\/\//i.test(s) && !/\.workers\.dev/i.test(s) ? s : '';
+          } catch { return ''; }
+        }
+
+        async function fetchViaCorsRelay(targetUrl, timeoutMs = 8000) {
+          const cfW = getCfWorker();
+          if (cfW) {
+            try {
+              const res = await fetch(`${cfW}/?url=${encodeURIComponent(targetUrl)}`, {signal: AbortSignal.timeout(timeoutMs)});
+              if (res.ok) {
+                const txt = await res.text();
+                if (txt && !txt.trim().startsWith('<')) return JSON.parse(txt);
+              }
+            } catch {}
+          }
+          const run = relayChain.then(async () => {
+            const now = Date.now();
+            for (const r of RELAYS) {
+              if (now < r.cooldown) continue;
+              const wait = r.last + r.min - Date.now();
+              if (wait > 0) {
+                if (wait > 1800) continue;
+                await new Promise((res) => setTimeout(res, wait));
+              }
+              r.last = Date.now();
+              try {
+                const res = await fetch(r.url(targetUrl), {signal: AbortSignal.timeout(timeoutMs)});
+                if (res.status === 401 || res.status === 403 || res.status === 429) {
+                  r.cooldown = Date.now() + (res.status === 429 ? 35000 : 60000);
+                  continue;
+                }
+                if (!res.ok) { r.cooldown = Date.now() + 20000; continue; }
+                const txt = r.unwrap(await res.text());
+                if (!txt || txt.trim().startsWith('<') || /rate limit exceeded|api key is required/i.test(txt.slice(0, 220))) {
+                  r.cooldown = Date.now() + 20000;
+                  continue;
+                }
+                return JSON.parse(txt);
+              } catch {
+                r.cooldown = Date.now() + 20000;
+              }
+            }
+            return null;
+          }, () => null);
+          relayChain = run.then(() => undefined, () => undefined);
+          return run;
+        }
+
+        async function selectAirport(ap) {
+          state.selectedAirport = ap;
+          state.selectedFlightId = null;
+          renderAirports();
+          const sb = document.getElementById('sd-sidebar');
+          sb.classList.remove('hidden');
+          const nearby = state.flights.filter((f) => Math.hypot(f.lat - ap.lat, f.lon - ap.lon) < 1.2).slice(0, 60);
+          const fmtTime = (ep) => {
+            const d = new Date(ep * 1000);
+            if (state.tzMode === 'utc') return d.toISOString().slice(11, 16) + 'Z';
+            if (state.tzMode === 'local') return d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',hour12:false});
+            try { return d.toLocaleTimeString([], {timeZone: ap.tz || 'UTC', hour:'2-digit', minute:'2-digit', hour12:false}); } catch { return d.toISOString().slice(11, 16) + 'Z'; }
+          };
+          sb.innerHTML = `<div style="display:flex;flex-direction:column;height:100%;min-height:0;"><div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid var(--sd-border);flex-shrink:0;"><div><div style="font-size:15px;font-weight:700;">${ap.iata || ap.icao} · ${ap.name}</div><div class="sd-mono" style="font-size:11px;color:var(--sd-muted);">${ap.icao} · ${ap.city || ''}</div></div><button type="button" class="sd-btn" id="sd-close-sb">Close</button></div><div style="flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:12px 14px 20px;"><div id="sd-metar-box" class="sd-mono" style="padding:8px;border-radius:10px;background:var(--sd-sec);font-size:11px;margin-bottom:10px;">Loading METAR…</div><div style="font-size:12px;font-weight:700;margin-bottom:6px;">Sector Traffic (${nearby.length} tracked)</div><div style="display:flex;flex-direction:column;gap:5px;">${nearby.map((f)=>`<div style="display:flex;justify-content:space-between;padding:6px 8px;border-radius:10px;background:var(--sd-sec);font-size:11.5px;"><span class="sd-mono" style="font-weight:700;">${f.callsign}</span><span class="sd-mono">${f.onGround ? 'GND' : 'FL'+Math.round(f.alt/100)} · ${fmtTime(Math.floor(Date.now()/1000))}</span></div>`).join('') || '<div style="font-size:11.5px;color:var(--sd-muted);">Zoom near airport sector to inspect live arrivals & departures.</div>'}</div></div></div>`;
+          document.getElementById('sd-close-sb').onclick = () => { state.selectedAirport = null; sb.classList.add('hidden'); renderAirports(); };
+          try {
+            const custom = getCustomApi();
+            if (custom) {
+              const r = await fetch(`${custom}/api/weather?icaos=${encodeURIComponent(ap.icao)}`, {signal: AbortSignal.timeout(5000)});
+              if (r.ok) {
+                const w = await r.json();
+                const box = document.getElementById('sd-metar-box');
+                if (box && w.airports?.[0]?.rawMetar) { box.textContent = w.airports[0].rawMetar; return; }
+              }
+            }
+            const d = await fetchViaCorsRelay(`https://aviationweather.gov/api/data/metar?ids=${encodeURIComponent(ap.icao)}&format=json`, 7000);
+            const box = document.getElementById('sd-metar-box');
+            if (box) box.textContent = (Array.isArray(d) && d[0]?.rawOb) ? d[0].rawOb : 'No live METAR for station';
+          } catch {
+            const box = document.getElementById('sd-metar-box');
+            if (box) box.textContent = 'METAR feed unavailable';
+          }
+        }
+
+        function pushTrailPoint(f) {
+          const arr = state.trails.get(f.icao24) || [];
+          const last = arr[arr.length - 1];
+          if (!last || (Math.hypot(f.lat - last.lat, f.lon - last.lon) > 0.0005 && Math.hypot(f.lat - last.lat, f.lon - last.lon) < 0.35)) {
+            arr.push({lat:f.lat, lon:f.lon, alt:f.alt});
+            if (arr.length > 120) arr.shift();
+            state.trails.set(f.icao24, arr);
+          }
+        }
+
+        function parseFr24(raw, out) {
+          for (const [key, val] of Object.entries(raw || {})) {
+            if (key === 'full_count' || key === 'version' || key === 'stats' || !Array.isArray(val) || val.length < 15) continue;
+            const hex = String(val[0] || key).toLowerCase();
+            const lat = Number(val[1]), lon = Number(val[2]);
+            if (!hex || !Number.isFinite(lat) || !Number.isFinite(lon)) continue;
+            const s7 = String(val[7] || '');
+            const hasPfx = /^(F-|T-|N\/A|EST|SAT|MLAT|ADSB|GLID|FLARM)/i.test(s7) || s7 === '';
+            const track = Number(val[3]) || 0;
+            const alt = Math.max(0, Math.round(Number(val[4]) || 0));
+            const spd = Math.max(0, Math.round(Number(val[5]) || 0));
+            const type = String((hasPfx ? val[8] : val[7]) || 'A320').toUpperCase();
+            const reg = String((hasPfx ? val[9] : val[8]) || '');
+            const onGndVal = Number(hasPfx ? val[14] : val[13]);
+            const callsign = String((hasPfx ? val[16] : val[15]) || (hasPfx ? val[13] : val[12]) || hex).trim().toUpperCase();
+            const f = {
+              id: hex, icao24: hex, callsign, reg, type,
+              squawk: String(val[6] || ''), lat, lon, alt, spd,
+              track: ((track % 360) + 360) % 360,
+              onGround: onGndVal === 1 || (alt <= 150 && spd < 45),
+            };
+            if (!out.has(hex)) { out.set(hex, f); pushTrailPoint(f); }
+          }
+        }
+
+        function parseAdsbAc(rows, out, forceBits = 0) {
+          for (const ac of (rows || [])) {
+            if (typeof ac.lat !== 'number' || typeof ac.lon !== 'number') continue;
+            const hex = String(ac.hex || '').toLowerCase();
+            if (!hex) continue;
+            const dbFlags = ((Number(ac.dbFlags) || 0) | forceBits);
+            const isMilitary = (dbFlags & 1) !== 0;
+            const isPia = (dbFlags & 4) !== 0;
+            const isLadd = (dbFlags & 8) !== 0;
+            const ownOp = ac.ownOp ? String(ac.ownOp) : '';
+            const existing = out.get(hex);
+            if (existing) {
+              if (dbFlags) existing.dbFlags = (existing.dbFlags || 0) | dbFlags;
+              if (isMilitary) existing.isMilitary = true;
+              if (isPia) existing.isPia = true;
+              if (isLadd) existing.isLadd = true;
+              if (ownOp && !existing.ownOp) existing.ownOp = ownOp;
+              if (ac.r && !existing.reg) existing.reg = ac.r;
+              if (ac.t && !existing.type) existing.type = ac.t;
+              continue;
+            }
+            const alt = ac.alt_baro === 'ground' ? 0 : Math.max(0, Math.round(Number(ac.alt_baro ?? ac.alt_geom ?? 0)));
+            const f = {
+              id: hex, icao24: hex, callsign: String(ac.flight || ac.r || hex).trim().toUpperCase(),
+              reg: ac.r || '', type: ac.t || '', squawk: ac.squawk ? String(ac.squawk) : '',
+              lat: ac.lat, lon: ac.lon, alt, spd: Number(ac.gs ?? 0), track: Number(ac.track ?? 0),
+              onGround: ac.alt_baro === 'ground' || alt < 50,
+              dbFlags: dbFlags || undefined, isMilitary, isPia, isLadd, ownOp: ownOp || undefined,
+            };
+            out.set(hex, f); pushTrailPoint(f);
+          }
+        }
+
+        let fetching = false;
+        async function pollFlights() {
+          if (fetching) return;
+          fetching = true;
+          try {
+            const c = map.getCenter();
+            const b = map.getBounds();
+            const lamax = Math.min(85, b.getNorth()), lamin = Math.max(-85, b.getSouth());
+            const lomax = Math.min(180, b.getEast()), lomin = Math.max(-180, b.getWest());
+            const out = new Map();
+
+            const custom = getCustomApi();
+            if (custom) {
+              try {
+                const r = await fetch(`${custom}/api/flights?lamin=${lamin.toFixed(2)}&lomin=${lomin.toFixed(2)}&lamax=${lamax.toFixed(2)}&lomax=${lomax.toFixed(2)}`, {signal: AbortSignal.timeout(8000)});
+                if (r.ok) {
+                  const j = await r.json();
+                  for (const fl of (j.flights || [])) {
+                    const f = {
+                      id: fl.id || fl.icao24, icao24: (fl.icao24 || fl.id).toLowerCase(),
+                      callsign: fl.callsign || fl.icao24, reg: fl.registration || '', type: fl.aircraftType || '',
+                      squawk: fl.squawk || '', lat: fl.lat, lon: fl.lon, alt: fl.altitudeFt || 0,
+                      spd: fl.groundSpeedKts || 0, track: fl.trueTrackDeg || 0, onGround: Boolean(fl.onGround),
+                      dbFlags: fl.dbFlags, isLadd: Boolean(fl.isLadd || ((fl.dbFlags || 0) & 8)),
+                      isMilitary: Boolean(fl.isMilitary || ((fl.dbFlags || 0) & 1)),
+                      isPia: Boolean(fl.isPia || ((fl.dbFlags || 0) & 4)),
+                      ownOp: fl.ownerOperator || '',
+                    };
+                    out.set(f.id, f); pushTrailPoint(f);
+                  }
+                }
+              } catch {}
+            }
+
+            if (out.size === 0) {
+              pollCycle++;
+              const radNm = Math.min(250, Math.max(50, Math.round(Math.hypot(lamax - lamin, lomax - lomin) * 35)));
+              const osLatMin = Math.max(lamin, c.lat - 22), osLatMax = Math.min(lamax, c.lat + 22);
+              const osLonMin = Math.max(lomin, c.lng - 32), osLonMax = Math.min(lomax, c.lng + 32);
+              const latSpan = lamax - lamin, lonSpan = lomax - lomin;
+              const nowMs = Date.now();
+
+              const osPromise = fetch(`https://opensky-network.org/api/states/all?lamin=${osLatMin.toFixed(2)}&lomin=${osLonMin.toFixed(2)}&lamax=${osLatMax.toFixed(2)}&lomax=${osLonMax.toFixed(2)}`, {signal: AbortSignal.timeout(13000)})
+                .then((r) => r.ok ? r.json() : null)
+                .catch(() => null);
+
+              const milPromise = (nowMs - milCache.ts < 12000 && milCache.ac.length)
+                ? Promise.resolve({ac: milCache.ac})
+                : (getCfWorker() || pollCycle % 2 === 1)
+                  ? fetchViaCorsRelay('https://api.adsb.lol/v2/mil', 6500).then((d) => { if (d?.ac?.length) milCache = {ts: Date.now(), ac: d.ac}; return d || (milCache.ac.length ? {ac: milCache.ac} : null); }).catch(() => (milCache.ac.length ? {ac: milCache.ac} : null))
+                  : Promise.resolve(milCache.ac.length ? {ac: milCache.ac} : null);
+
+              const laddPromise = (nowMs - laddCache.ts < 15000 && laddCache.ac.length)
+                ? Promise.resolve({ac: laddCache.ac})
+                : (getCfWorker() || state.dbFilter === 'ladd' || pollCycle % 2 === 1)
+                  ? fetchViaCorsRelay('https://api.adsb.lol/v2/ladd', 6500).then((d) => { if (d?.ac?.length) laddCache = {ts: Date.now(), ac: d.ac}; return d || (laddCache.ac.length ? {ac: laddCache.ac} : null); }).catch(() => (laddCache.ac.length ? {ac: laddCache.ac} : null))
+                  : Promise.resolve(laddCache.ac.length ? {ac: laddCache.ac} : null);
+
+              const relayPromise = (async () => {
+                const frZone = (a, b, c0, d) => `https://data-cloud.flightradar24.com/zones/fcgi/feed.js?bounds=${a.toFixed(3)},${b.toFixed(3)},${c0.toFixed(3)},${d.toFixed(3)}&faa=1&satellite=1&mlat=1&flarm=1&adsb=1&gnd=1&air=1&vehicles=0&estimated=1&maxage=14400&gliders=1`;
+                const lolUrl = `https://api.adsb.lol/v2/point/${c.lat.toFixed(3)}/${c.lng.toFixed(3)}/${radNm}`;
+                const fiUrl = `https://opendata.adsb.fi/api/v2/lat/${c.lat.toFixed(3)}/lon/${c.lng.toFixed(3)}/dist/${radNm}`;
+                if (latSpan > 16 || lonSpan > 24) {
+                  const midLat = (lamin + lamax) * 0.5, midLon = (lomin + lomax) * 0.5;
+                  const tiles = [
+                    [lamax, midLat, lomin, midLon],
+                    [lamax, midLat, midLon, lomax],
+                    [midLat, lamin, lomin, midLon],
+                    [midLat, lamin, midLon, lomax],
+                  ];
+                  const chunks = await Promise.all(tiles.map((t) => fetchViaCorsRelay(frZone(t[0], t[1], t[2], t[3]), 8500)));
+                  const merged = {};
+                  for (const ch of chunks) if (ch) Object.assign(merged, ch);
+                  if (Object.keys(merged).length > 3) return {kind:'fr24', data: merged};
+                } else {
+                  const frJ = await fetchViaCorsRelay(frZone(lamax, lamin, lomin, lomax), 8500);
+                  if (frJ && Object.keys(frJ).length > 3) return {kind:'fr24', data: frJ};
+                }
+                const lolJ = await fetchViaCorsRelay(lolUrl, 7500);
+                if (lolJ?.ac?.length) return {kind:'lol', data: lolJ};
+                const fiJ = await fetchViaCorsRelay(fiUrl, 7500);
+                if (fiJ?.aircraft?.length) return {kind:'fi', data: fiJ};
+                return null;
+              })();
+
+              const [relayRes, osJson, milJson, laddJson] = await Promise.all([relayPromise, osPromise, milPromise, laddPromise]);
+              if (relayRes?.kind === 'fr24') parseFr24(relayRes.data, out);
+              else if (relayRes?.kind === 'lol') parseAdsbAc(relayRes.data.ac, out, 0);
+              else if (relayRes?.kind === 'fi') parseAdsbAc(relayRes.data.aircraft, out, 0);
+
+              if (laddJson?.ac?.length) {
+                const inBox = laddJson.ac.filter((a) => typeof a.lat === 'number' && a.lat >= lamin && a.lat <= lamax && a.lon >= lomin && a.lon <= lomax);
+                parseAdsbAc(inBox.slice(0, 260), out, 8);
+              }
+              if (milJson?.ac?.length) {
+                const inBox = milJson.ac.filter((a) => typeof a.lat === 'number' && a.lat >= lamin && a.lat <= lamax && a.lon >= lomin && a.lon <= lomax);
+                parseAdsbAc(inBox.slice(0, 180), out, 1);
+              }
+
+              for (const s of (osJson?.states || []).slice(0, 900)) {
+                if (typeof s[6] !== 'number' || typeof s[5] !== 'number') continue;
+                const hex = String(s[0] || '').toLowerCase();
+                if (!hex || out.has(hex)) continue;
+                const alt = typeof s[7] === 'number' ? Math.round(s[7] * 3.28084) : 0;
+                const f = {
+                  id: hex, icao24: hex, callsign: String(s[1] || hex).trim().toUpperCase(),
+                  reg: '', type: '', squawk: s[14] ? String(s[14]) : '',
+                  lat: s[6], lon: s[5], alt, spd: typeof s[9] === 'number' ? Math.round(s[9] * 1.94384) : 0,
+                  track: typeof s[10] === 'number' ? s[10] : 0, onGround: Boolean(s[8]),
+                };
+                out.set(hex, f); pushTrailPoint(f);
+              }
+            }
+
+            if (out.size > 0) {
+              const nowReg = Date.now();
+              for (const f of out.values()) {
+                state.stickyRegistry.set(f.id, {f, ts: nowReg});
+              }
+              for (const [k, v] of state.stickyRegistry.entries()) {
+                if (nowReg - v.ts > 65000) state.stickyRegistry.delete(k);
+              }
+              const rank = (x) => (x.squawk === '7500' || x.squawk === '7600' || x.squawk === '7700') ? 3 : x.isLadd ? 2 : x.isMilitary ? 1 : 0;
+              state.flights = Array.from(state.stickyRegistry.values())
+                .sort((a, b2) => (rank(b2.f) - rank(a.f)) || (b2.ts - a.ts))
+                .slice(0, 2000)
+                .map((e) => e.f);
+              renderFlights();
+            } else if (state.flights.length === 0) {
+              document.getElementById('sd-count-pill').textContent = '0 ACFT (Retrying…)';
+            }
+          } finally {
+            fetching = false;
+          }
+        }
+
+        // Load full OurAirports directory asynchronously so every airport can be clicked
+        fetch('https://davidmegginson.github.io/ourairports-data/airports.csv')
+          .then((r) => r.ok ? r.text() : '')
+          .then((csv) => {
+            if (!csv) return;
+            const lines = csv.split(/\r?\n/);
+            const parsed = [...HUBS];
+            const seen = new Set(HUBS.map((h) => h.icao));
+            for (let i = 1; i < lines.length; i++) {
+              const cols = lines[i].split(',');
+              if (cols.length < 15) continue;
+              const type = cols[2]?.replace(/"/g, '');
+              if (type !== 'large_airport' && type !== 'medium_airport') continue;
+              const icao = (cols[1] || '').replace(/"/g, '').toUpperCase();
+              if (!icao || seen.has(icao)) continue;
+              const lat = Number(cols[4]); const lon = Number(cols[5]);
+              if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue;
+              seen.add(icao);
+              parsed.push({
+                icao, iata: (cols[13] || '').replace(/"/g, ''), name: (cols[3] || '').replace(/"/g, ''),
+                city: (cols[10] || '').replace(/"/g, ''), lat, lon, tier: type === 'large_airport' ? 1 : 2
+              });
+            }
+            state.globalAirports = parsed;
+            renderAirports();
+          }).catch(() => {});
+
+        function bearingDeg(p1, p2) {
+          const r = Math.PI / 180;
+          const y = Math.sin((p2[1]-p1[1])*r) * Math.cos(p2[0]*r);
+          const x = Math.cos(p1[0]*r)*Math.sin(p2[0]*r) - Math.sin(p1[0]*r)*Math.cos(p2[0]*r)*Math.cos((p2[1]-p1[1])*r);
+          return ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360;
+        }
+        function offsetPt(lat, lon, brg, fwdM, rightM) {
+          const b = brg * Math.PI / 180;
+          const nM = Math.cos(b)*fwdM - Math.sin(b)*rightM;
+          const eM = Math.sin(b)*fwdM + Math.cos(b)*rightM;
+          return [lat + nM/111320, lon + eM/(111320*Math.cos(lat*Math.PI/180))];
+        }
+
+        let globalRwyPromise = null;
+        function getStaticGlobalRunways() {
+          if (globalRwyPromise) return globalRwyPromise;
+          globalRwyPromise = fetch('https://davidmegginson.github.io/ourairports-data/runways.csv')
+            .then((r) => r.ok ? r.text() : '')
+            .then((csv) => {
+              const m = new Map();
+              if (!csv) return m;
+              const lines = csv.split(/\r?\n/);
+              for (let i = 1; i < lines.length; i++) {
+                const c = lines[i].split(',');
+                if (c.length < 18) continue;
+                const ident = (c[2] || '').replace(/"/g, '').toUpperCase();
+                const leId = (c[8] || '').replace(/"/g, ''), heId = (c[14] || '').replace(/"/g, '');
+                const leLat = Number(c[9]), leLon = Number(c[10]), heLat = Number(c[15]), heLon = Number(c[16]);
+                if (!ident || !Number.isFinite(leLat) || !Number.isFinite(leLon) || !Number.isFinite(heLat) || !Number.isFinite(heLon)) continue;
+                const list = m.get(ident) || [];
+                list.push({ref: leId && heId ? `${leId}/${heId}` : leId || heId, coords: [[leLat, leLon], [heLat, heLon]]});
+                m.set(ident, list);
+              }
+              return m;
+            }).catch(() => new Map());
+          return globalRwyPromise;
+        }
+
+        const staticSurfaceCache = new Map();
+        function stitchStaticOuterRings(members) {
+          const raw = [];
+          for (const m of members || []) {
+            if (m.role && m.role !== 'outer') continue;
+            if (!Array.isArray(m.geometry) || m.geometry.length < 2) continue;
+            const pts = m.geometry.filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lon)).map((p) => [p.lat, p.lon]);
+            if (pts.length >= 2) raw.push(pts);
+          }
+          const rings = [];
+          const used = new Array(raw.length).fill(false);
+          const near = (a, b) => Math.abs(a[0] - b[0]) < 1e-5 && Math.abs(a[1] - b[1]) < 1e-5;
+          for (let i = 0; i < raw.length; i++) {
+            if (used[i]) continue;
+            used[i] = true;
+            const chain = [...raw[i]];
+            let ext = true;
+            while (ext && !near(chain[0], chain[chain.length - 1])) {
+              ext = false;
+              const tail = chain[chain.length - 1];
+              for (let j = 0; j < raw.length; j++) {
+                if (used[j]) continue;
+                const c = raw[j];
+                if (near(tail, c[0])) { chain.push(...c.slice(1)); used[j] = true; ext = true; break; }
+                if (near(tail, c[c.length - 1])) { chain.push(...[...c].reverse().slice(1)); used[j] = true; ext = true; break; }
+              }
+            }
+            if (chain.length >= 3) rings.push(chain);
+          }
+          return rings;
+        }
+
+        function polyCenterStatic(coords) {
+          let sLat = 0, sLon = 0;
+          for (const c of coords) { sLat += c[0]; sLon += c[1]; }
+          const n = Math.max(1, coords.length);
+          return [sLat / n, sLon / n];
+        }
+
+        function axisDiffStatic(a, b) {
+          const d = Math.abs((((a - b) % 180) + 180) % 180);
+          return Math.min(d, 180 - d);
+        }
+
+        function mergeStaticRunways(osmRwys, aipRwys) {
+          const w = osmRwys.filter((r) => r.coords.length >= 2).map((r) => ({...r, coords: [...r.coords]}));
+          const nearEnd = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]) < 0.00055;
+          let changed = true;
+          while (changed) {
+            changed = false;
+            for (let i = 0; i < w.length; i++) {
+              const a = w[i], bA = bearingDeg(a.coords[0], a.coords[a.coords.length - 1]);
+              for (let j = i + 1; j < w.length; j++) {
+                const b = w[j], bB = bearingDeg(b.coords[0], b.coords[b.coords.length - 1]);
+                if (axisDiffStatic(bA, bB) > 4.5) continue;
+                const a0 = a.coords[0], a1 = a.coords[a.coords.length - 1], b0 = b.coords[0], b1 = b.coords[b.coords.length - 1];
+                let comb = null;
+                if (nearEnd(a1, b0)) comb = [...a.coords, ...b.coords.slice(1)];
+                else if (nearEnd(a1, b1)) comb = [...a.coords, ...[...b.coords].reverse().slice(1)];
+                else if (nearEnd(a0, b1)) comb = [...b.coords, ...a.coords.slice(1)];
+                else if (nearEnd(a0, b0)) comb = [...[...b.coords].reverse(), ...a.coords.slice(1)];
+                if (comb) {
+                  w[i] = {...a, ref: (a.ref && a.ref.includes('/')) ? a.ref : (b.ref && b.ref.includes('/')) ? b.ref : (a.ref || b.ref), coords: comb};
+                  w.splice(j, 1); changed = true; break;
+                }
+              }
+              if (changed) break;
+            }
+          }
+          if (w.length > 0) {
+            const used = new Set();
+            for (const osm of w) {
+              const oA = osm.coords[0], oB = osm.coords[osm.coords.length - 1];
+              const oMidLat = (oA[0] + oB[0]) * 0.5, oMidLon = (oA[1] + oB[1]) * 0.5, oBrg = bearingDeg(oA, oB);
+              let best = -1, bestD = Infinity;
+              for (let k = 0; k < aipRwys.length; k++) {
+                const aip = aipRwys[k];
+                const aMidLat = (aip.coords[0][0] + aip.coords[1][0]) * 0.5, aMidLon = (aip.coords[0][1] + aip.coords[1][1]) * 0.5;
+                if (axisDiffStatic(oBrg, bearingDeg(aip.coords[0], aip.coords[1])) > 12) continue;
+                const d = Math.hypot(oMidLat - aMidLat, oMidLon - aMidLon);
+                if (d < 0.0055 && d < bestD) { bestD = d; best = k; }
+              }
+              if (best >= 0) {
+                used.add(best);
+                if ((!osm.ref || !osm.ref.includes('/')) && aipRwys[best].ref) osm.ref = aipRwys[best].ref;
+              }
+            }
+            aipRwys.forEach((aip, idx) => {
+              if (used.has(idx)) return;
+              const aMidLat = (aip.coords[0][0] + aip.coords[1][0]) * 0.5, aMidLon = (aip.coords[0][1] + aip.coords[1][1]) * 0.5;
+              if (!w.some((osm) => Math.hypot((osm.coords[0][0]+osm.coords[osm.coords.length-1][0])*0.5 - aMidLat, (osm.coords[0][1]+osm.coords[osm.coords.length-1][1])*0.5 - aMidLon) < 0.0038)) {
+                w.push(aip);
+              }
+            });
+            return w;
+          }
+          return [...aipRwys];
+        }
+
+        function deriveStaticRwyEnds(ref, brg) {
+          if (ref && ref.includes('/')) {
+            const p = ref.split('/').map((s) => s.trim());
+            if (p.length === 2 && p[0] && p[1]) {
+              const m = p[0].match(/^(\d{1,2})/);
+              if (m) {
+                const exp = (parseInt(m[1], 10) % 36) * 10;
+                if (Math.abs((((brg - exp) + 540) % 360) - 180) > 90) return [p[1], p[0]];
+              }
+              return [p[0], p[1]];
+            }
+          }
+          const n = Math.max(1, Math.min(36, Math.round(brg / 10) || 36));
+          return [String(n).padStart(2, '0'), String(n > 18 ? n - 18 : n + 18).padStart(2, '0')];
+        }
+
+        async function updateRunways() {
+          const z = map.getZoom();
+          if (z < 9.6) { surfaceLayer.clearLayers(); state.surfaceKey = ''; return; }
+          const b = map.getBounds().pad(0.2);
+          const c = map.getCenter();
+          const source = state.globalAirports || HUBS;
+          const nearby = source.filter((a) => b.contains([a.lat, a.lon])).sort((a, b2) => (Math.hypot(a.lat-c.lat, a.lon-c.lng)+(a.tier-1)*0.08) - (Math.hypot(b2.lat-c.lat, b2.lon-c.lng)+(b2.tier-1)*0.08)).slice(0, 3);
+          const targets = nearby.length ? nearby : [{icao:'', lat:c.lat, lon:c.lng}];
+          const zoomTier = z >= 14 ? 4 : z >= 13 ? 3 : z >= 12 ? 2 : 1;
+          const key = `${zoomTier}|${targets.map((t) => t.icao || `${t.lat.toFixed(2)},${t.lon.toFixed(2)}`).join('|')}`;
+          if (key === state.surfaceKey) return;
+          state.surfaceKey = key;
+
+          const rwyMap = await getStaticGlobalRunways();
+          const placedTwys = new Set(), placedAprons = new Set(), placedTerms = new Set(), placedStands = new Set();
+          const parsedTargets = [];
+
+          for (const tgt of targets) {
+            const cKey = tgt.icao || `${tgt.lat.toFixed(2)},${tgt.lon.toFixed(2)}`;
+            const cached = staticSurfaceCache.get(cKey);
+            const ttl = cached && cached.osm ? 86400000 : 45000;
+            if (cached && Date.now() - cached.ts < ttl) {
+              parsedTargets.push(cached);
+              continue;
+            }
+
+            let elements = [];
+            try {
+              const bb = `${(tgt.lat-0.055).toFixed(4)},${(tgt.lon-0.080).toFixed(4)},${(tgt.lat+0.055).toFixed(4)},${(tgt.lon+0.080).toFixed(4)}`;
+              const q = `[out:json][timeout:14];(way["aeroway"~"^(runway|taxiway|taxilane|apron|terminal|parking_position)$"](${bb});relation["aeroway"~"^(apron|terminal)$"](${bb});way["building"="terminal"](${bb});relation["building"="terminal"](${bb});node["aeroway"~"^(gate|parking_position|terminal)$"](${bb}););out geom qt;`;
+              const postOp = (url) => fetch(url, {method:'POST', body:q, signal:AbortSignal.timeout(9500)})
+                .then((r) => r.ok ? r.json() : Promise.reject())
+                .then((d) => (d && Array.isArray(d.elements) && d.elements.length > 0) ? d.elements : Promise.reject());
+              elements = await Promise.any([
+                postOp('https://overpass.openstreetmap.fr/api/interpreter'),
+                postOp('https://overpass-api.de/api/interpreter'),
+                postOp('https://overpass.kumi.systems/api/interpreter'),
+                postOp(cfUrl('https://overpass.openstreetmap.fr/api/interpreter')),
+              ]);
+            } catch {}
+
+            const osmRwys = [], osmTwys = [], osmAprons = [], osmTerminals = [], osmStands = [];
+            for (const el of elements) {
+              const tags = el.tags || {}, aw = tags.aeroway, bld = tags.building;
+              if (el.type === 'node' && Number.isFinite(el.lat) && Number.isFinite(el.lon)) {
+                if (aw === 'gate' || aw === 'parking_position') {
+                  const ref = (tags.ref || tags.name || '').trim();
+                  if (ref) osmStands.push({ref, kind:aw, lat:el.lat, lon:el.lon});
+                }
+                continue;
+              }
+              if (el.type === 'way' && Array.isArray(el.geometry)) {
+                const coords = el.geometry.filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lon)).map((p) => [p.lat, p.lon]);
+                if (coords.length < 2) continue;
+                if (aw === 'runway') osmRwys.push({coords, ref:(tags.ref || '').trim()});
+                else if (aw === 'taxiway' || aw === 'taxilane') osmTwys.push({coords, kind:aw, ref:(tags.ref || tags.name || '').replace(/^(taxiway|taxilane|twy)\s+/i,'').trim()});
+                else if (aw === 'parking_position') {
+                  const mid = coords[Math.floor(coords.length/2)];
+                  osmStands.push({coords, kind:aw, lat:mid[0], lon:mid[1], ref:(tags.ref || tags.name || '').trim()});
+                } else if (aw === 'apron' && coords.length >= 3) {
+                  osmAprons.push({coords, center:polyCenterStatic(coords), ref:(tags.ref || '').trim(), name:(tags.name || '').trim()});
+                } else if ((aw === 'terminal' || bld === 'terminal') && coords.length >= 3) {
+                  osmTerminals.push({coords, center:polyCenterStatic(coords), ref:(tags.ref || '').trim(), name:(tags.name || tags.ref || '').trim()});
+                }
+              } else if (el.type === 'relation' && Array.isArray(el.members)) {
+                const rings = stitchStaticOuterRings(el.members);
+                if (aw === 'apron') rings.forEach((ring) => osmAprons.push({coords:ring, center:polyCenterStatic(ring), ref:(tags.ref || '').trim(), name:(tags.name || '').trim()}));
+                else if (aw === 'terminal' || bld === 'terminal') rings.forEach((ring) => osmTerminals.push({coords:ring, center:polyCenterStatic(ring), ref:(tags.ref || '').trim(), name:(tags.name || tags.ref || '').trim()}));
+              }
+            }
+
+            const aipRwys = (tgt.icao && rwyMap.get(tgt.icao)) || [];
+            const runways = mergeStaticRunways(osmRwys, aipRwys);
+            const hasOsm = osmRwys.length > 0 || osmTwys.length > 0;
+            if (!osmTwys.length && runways.length) {
+              runways.forEach((rw, idx) => {
+                const p1 = rw.coords[0], p2 = rw.coords[rw.coords.length - 1];
+                const cosL = Math.max(0.2, Math.cos(p1[0]*Math.PI/180));
+                const dLat = p2[0] - p1[0], dLon = (p2[1] - p1[1]) * cosL, len = Math.max(1e-5, Math.hypot(dLat, dLon));
+                const sgn = idx % 2 === 0 ? 1 : -1;
+                const oLat = (-dLon/len)*0.0024*sgn, oLon = ((dLat/len)*0.0024*sgn)/cosL;
+                const ref = ['A','B','C','L','G'][idx % 5];
+                osmTwys.push({ref, kind:'taxiway', coords:[[p1[0]+oLat, p1[1]+oLon], [p2[0]+oLat, p2[1]+oLon]]});
+                [0.12, 0.5, 0.88].forEach((fr, ci) => osmTwys.push({ref:`${ref}${ci+1}`, kind:'taxiway', coords:[[p1[0]+(p2[0]-p1[0])*fr, p1[1]+(p2[1]-p1[1])*fr], [p1[0]+oLat+(p2[0]-p1[0])*fr, p1[1]+oLon+(p2[1]-p1[1])*fr]]}));
+              });
+            }
+            const entry = {ts:Date.now(), osm:hasOsm, runways, osmTwys, osmAprons, osmTerminals, osmStands};
+            staticSurfaceCache.set(cKey, entry);
+            parsedTargets.push(entry);
+          }
+
+          surfaceLayer.clearLayers();
+          for (const surf of parsedTargets) {
+            let autoApron = 1;
+            for (const ap of surf.osmAprons) {
+              L.polygon(ap.coords, {renderer, color:'rgba(250,204,21,0.3)', weight:0.9, fillColor:state.theme === 'dark' ? '#0f141e' : '#334155', fillOpacity:state.theme === 'dark' ? 0.56 : 0.44, interactive:false}).addTo(surfaceLayer);
+              if (z >= 12.8) {
+                const lbl = ap.ref || ap.name || (ap.coords.length >= 6 ? `APRON ${autoApron++}` : '');
+                const aKey = `${Math.round(ap.center[0]*300)}-${Math.round(ap.center[1]*300)}`;
+                if (lbl && !placedAprons.has(aKey)) {
+                  placedAprons.add(aKey);
+                  L.marker(ap.center, {interactive:false, icon:L.divIcon({className:'skydeck-apron-badge', iconSize:[90,16], iconAnchor:[45,8], html:`<span style="display:inline-block;padding:1px 5px;border-radius:4px;background:rgba(15,23,42,0.72);border:1px solid rgba(250,204,21,0.35);font-family:'JetBrains Mono',monospace;font-size:8.5px;font-weight:700;color:#FDE68A;white-space:nowrap;">${lbl.slice(0,18)}</span>`})}).addTo(surfaceLayer);
+                }
+              }
+            }
+            for (const term of surf.osmTerminals) {
+              L.polygon(term.coords, {renderer, color:state.theme === 'dark' ? 'rgba(56,189,248,0.65)' : 'rgba(14,165,233,0.85)', weight:1.2, fillColor:state.theme === 'dark' ? '#1a2538' : '#3b4a62', fillOpacity:0.88, interactive:false}).addTo(surfaceLayer);
+              const tLbl = term.name || term.ref;
+              const tKey = tLbl ? `${tLbl.toUpperCase()}-${Math.round(term.center[0]*240)}-${Math.round(term.center[1]*240)}` : '';
+              if (z >= 12.1 && tLbl && !placedTerms.has(tKey)) {
+                placedTerms.add(tKey);
+                L.marker(term.center, {interactive:false, icon:L.divIcon({className:'skydeck-term-badge', iconSize:[110,18], iconAnchor:[55,9], html:`<span style="display:inline-block;padding:1px 6px;border-radius:4px;background:rgba(12,20,34,0.82);border:1px solid rgba(56,189,248,0.45);font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;color:#E0F2FE;white-space:nowrap;">${tLbl.slice(0,22)}</span>`})}).addTo(surfaceLayer);
+              }
+            }
+            if (z >= 13.4) {
+              const sGrid = z >= 15 ? 2400 : 1200;
+              for (const st of surf.osmStands) {
+                if (st.coords && st.coords.length >= 2) {
+                  L.polyline(st.coords, {renderer, color:'#FACC15', weight:1.1, opacity:0.6, interactive:false}).addTo(surfaceLayer);
+                }
+                if (z >= 13.8 && st.ref) {
+                  const sk = `${Math.round(st.lat*sGrid)}-${Math.round(st.lon*sGrid)}`;
+                  if (!placedStands.has(sk)) {
+                    placedStands.add(sk);
+                    L.marker([st.lat, st.lon], {interactive:false, icon:L.divIcon({className:'skydeck-taxi-badge', iconSize:[28,14], iconAnchor:[14,7], html:`<span style="display:inline-block;padding:0 3px;border-radius:3px;background:rgba(11,16,27,0.78);border:1px solid rgba(250,204,21,0.38);font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;color:#FEF08A;white-space:nowrap;">${st.ref}</span>`})}).addTo(surfaceLayer);
+                  }
+                }
+              }
+            }
+            for (const twy of surf.osmTwys) {
+              const isLane = twy.kind === 'taxilane';
+              L.polyline(twy.coords, {renderer, color:'rgba(234,179,8,0.42)', weight:isLane ? 4.5 : 7, opacity:isLane ? 0.65 : 0.92, interactive:false}).addTo(surfaceLayer);
+              L.polyline(twy.coords, {renderer, color:state.theme === 'dark' ? '#0b101b' : '#334155', weight:isLane ? 3 : 4.5, opacity:0.95, interactive:false}).addTo(surfaceLayer);
+              L.polyline(twy.coords, {renderer, color:'#FACC15', weight:isLane ? 0.8 : 1.1, opacity:isLane ? 0.55 : 0.68, interactive:false}).addTo(surfaceLayer);
+              const mid = twy.coords[Math.floor(twy.coords.length / 2)];
+              const twyKey = twy.ref ? `${twy.ref}-${Math.round(mid[0]*320)}-${Math.round(mid[1]*320)}` : '';
+              if (z >= 12.2 && twy.ref && !placedTwys.has(twyKey)) {
+                placedTwys.add(twyKey);
+                L.marker(mid, {interactive:false, icon:L.divIcon({className:'skydeck-taxi-badge', iconSize:[28,14], iconAnchor:[14,7], html:`<span style="font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:800;color:#FDE047;text-shadow:0 0 3px #000,0 1px 3px #000;">${twy.ref}</span>`})}).addTo(surfaceLayer);
+              }
+              if (z >= 13.8 && !isLane) {
+                for (let i = 0; i < twy.coords.length; i += Math.max(1, Math.floor(twy.coords.length / 3))) {
+                  L.circleMarker(twy.coords[i], {renderer, radius:1.4, color:'#22c55e', fillColor:'#4ade80', fillOpacity:0.88, weight:0, interactive:false}).addTo(surfaceLayer);
+                }
+              }
+            }
+            for (const rwy of surf.runways) {
+              if (rwy.coords.length < 2) continue;
+              const pA = rwy.coords[0], pB = rwy.coords[rwy.coords.length - 1];
+              const brg = bearingDeg(pA, pB), rev = (brg + 180) % 360;
+              const [aLbl, bLbl] = deriveStaticRwyEnds(rwy.ref, brg);
+              const drawApp = (pt, hdg) => {
+                const outBrg = (hdg + 180) % 360;
+                const appEnd = offsetPt(pt[0], pt[1], outBrg, 2800, 0);
+                L.polyline([pt, appEnd], {renderer, color:'rgba(255,255,255,0.34)', weight:6, opacity:0.9, interactive:false}).addTo(surfaceLayer);
+                L.polyline([pt, appEnd], {renderer, color:'#FFFFFF', weight:2, opacity:0.96, interactive:false}).addTo(surfaceLayer);
+                const farEnd = offsetPt(pt[0], pt[1], outBrg, 9500, 0);
+                L.polyline([appEnd, farEnd], {renderer, color:'rgba(248,250,252,0.52)', weight:1.2, dashArray:'7 7', opacity:0.75, interactive:false}).addTo(surfaceLayer);
+                L.circleMarker(pt, {renderer, radius:3.6, color:'#ef4444', fillColor:'#ef4444', fillOpacity:0.95, weight:1, interactive:false}).addTo(surfaceLayer);
+                if (z >= 12.0) {
+                  for (let s = 1; s <= 5; s++) {
+                    const sPt = offsetPt(pt[0], pt[1], outBrg, 110 + (5 - s) * 120, 0);
+                    L.marker(sPt, {interactive:false, icon:L.divIcon({className:'skydeck-rabbit-icon', iconSize:[7,7], iconAnchor:[3.5,3.5], html:`<div class="skydeck-rabbit-dot" style="animation-delay:${(s*0.14).toFixed(2)}s;"></div>`})}).addTo(surfaceLayer);
+                  }
+                }
+              };
+              drawApp(pA, brg);
+              drawApp(pB, rev);
+              L.polyline(rwy.coords, {renderer, color:'rgba(255,255,255,0.28)', weight:18, opacity:0.95, lineCap:'butt', interactive:false}).addTo(surfaceLayer);
+              L.polyline(rwy.coords, {renderer, color:'#060910', weight:13, opacity:1, lineCap:'butt', interactive:false}).addTo(surfaceLayer);
+              L.polyline(rwy.coords, {renderer, color:'#FFFFFF', weight:2, opacity:0.98, interactive:false}).addTo(surfaceLayer);
+              const drawRwyLbl = (pt, hdg, txt) => {
+                const pos = offsetPt(pt[0], pt[1], hdg, 88, 0);
+                const norm = ((hdg % 360) + 360) % 360;
+                const rot = norm > 90 && norm < 270 ? norm - 180 : norm;
+                L.marker(pos, {interactive:false, icon:L.divIcon({className:'skydeck-runway-num', iconSize:[36,18], iconAnchor:[18,9], html:`<span style="display:inline-block;font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:800;color:#fff;text-shadow:0 0 4px #000,0 1px 4px #000;transform:rotate(${Math.round(rot)}deg);">${txt}</span>`})}).addTo(surfaceLayer);
+              };
+              drawRwyLbl(pA, brg, aLbl);
+              drawRwyLbl(pB, rev, bLbl);
+            }
+          }
+        }
+
+        map.on('zoomstart', () => { state.zooming = true; });
+        map.on('zoomend', () => { state.zooming = false; drawCanvasPlanes(performance.now()); });
+        map.on('move', () => { if (!state.zooming) drawCanvasPlanes(performance.now()); });
+        map.on('dragstart', () => { state.followSelected = false; });
+        let staticMoveTimer;
+        map.on('moveend', () => {
+          renderAirports(); renderFlights(); updateRunways();
+          clearTimeout(staticMoveTimer);
+          staticMoveTimer = setTimeout(pollFlights, 260);
+        });
+
+        function locateMe() {
+          if (!state.locate) return;
+          userLayer.clearLayers();
+          const setPt = (lat, lon) => {
+            map.setView([lat, lon], 8, {animate:true});
+            L.circleMarker([lat, lon], {radius:6, color:'#fff', weight:2, fillColor:'#0284C7', fillOpacity:1}).addTo(userLayer);
+          };
+          if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition((p) => setPt(p.coords.latitude, p.coords.longitude), () => {
+              fetch('https://ipwho.is/').then((r) => r.json()).then((d) => { if (d.latitude && d.longitude) setPt(d.latitude, d.longitude); }).catch(() => {});
+            }, {timeout:5000});
+          }
+        }
+        locateMe();
+
+        // UI bindings
+        document.getElementById('sd-search').oninput = (e) => { state.search = e.target.value; renderFlights(); };
+        document.getElementById('sd-region').onchange = (e) => { const r = REGIONS[e.target.value]; if (r) map.setView(r.center, r.zoom, {animate:true}); };
+        document.getElementById('sd-locate-btn').onclick = () => locateMe();
+        document.querySelectorAll('[data-phase]').forEach((btn) => {
+          btn.onclick = () => {
+            state.phase = btn.dataset.phase;
+            document.querySelectorAll('[data-phase]').forEach((b) => b.classList.toggle('active', b === btn));
+            renderFlights();
+          };
+        });
+        document.querySelectorAll('[data-dbfilter]').forEach((btn) => {
+          btn.onclick = () => {
+            const next = state.dbFilter === btn.dataset.dbfilter ? 'all' : btn.dataset.dbfilter;
+            state.dbFilter = next;
+            document.querySelectorAll('[data-dbfilter]').forEach((b) => b.classList.toggle('active', b.dataset.dbfilter === next));
+            renderFlights();
+          };
+        });
+        document.getElementById('sd-theme-btn').onclick = (e) => {
+          state.theme = state.theme === 'light' ? 'dark' : 'light';
+          document.documentElement.classList.toggle('dark', state.theme === 'dark');
+          e.target.textContent = state.theme === 'light' ? 'Light' : 'Night';
+          setBasemap(); renderFlights();
+        };
+        const pop = document.getElementById('sd-settings-popover');
+        document.getElementById('sd-settings-btn').onclick = () => pop.classList.toggle('hidden');
+        document.getElementById('sd-settings-close').onclick = () => pop.classList.add('hidden');
+        const apiInp = document.getElementById('sd-api-base');
+        if (apiInp) {
+          apiInp.value = getCustomApi();
+          apiInp.onchange = (e) => {
+            const v = (e.target.value || '').trim().replace(/\/+$/, '').replace(/\/api$/i, '');
+            try { if (v) localStorage.setItem('skydeck-api-base', v); else localStorage.removeItem('skydeck-api-base'); } catch {}
+            pollFlights();
+          };
+        }
+        document.getElementById('sd-size-range').oninput = (e) => {
+          state.planeSize = Number(e.target.value);
+          document.getElementById('sd-size-val').textContent = state.planeSize + ' px';
+          renderFlights();
+        };
+        document.querySelectorAll('[data-path]').forEach((b) => { b.onclick = () => { state.pathMode = b.dataset.path; document.querySelectorAll('[data-path]').forEach((x) => x.classList.toggle('active', x === b)); renderFlights(); }; });
+        document.querySelectorAll('[data-tz]').forEach((b) => { b.onclick = () => { state.tzMode = b.dataset.tz; document.querySelectorAll('[data-tz]').forEach((x) => x.classList.toggle('active', x === b)); if (state.selectedAirport) selectAirport(state.selectedAirport); }; });
+        document.querySelectorAll('[data-map]').forEach((b) => { b.onclick = () => { state.basemap = b.dataset.map; document.querySelectorAll('[data-map]').forEach((x) => x.classList.toggle('active', x === b)); setBasemap(); }; });
+        document.querySelectorAll('[data-toggle]').forEach((b) => {
+          b.onclick = () => {
+            const k = b.dataset.toggle;
+            state[k] = !state[k];
+            b.classList.toggle('active', state[k]);
+            if (k === 'locate' && !state.locate) userLayer.clearLayers();
+            renderFlights();
+          };
+        });
+        document.getElementById('sd-dock-hide').onclick = () => { document.getElementById('sd-dock').classList.add('collapsed'); document.getElementById('sd-dock-show').style.display = 'inline-flex'; pop.classList.add('hidden'); };
+        document.getElementById('sd-dock-show').onclick = () => { document.getElementById('sd-dock').classList.remove('collapsed'); document.getElementById('sd-dock-show').style.display = 'none'; };
+
+        renderAirports();
+        pollFlights();
+        setInterval(pollFlights, 7000);
+      })();
+    </script>
+    <!-- SKYDECK_STATIC_RUNTIME_END -->
+  </body>
+</html>
